@@ -10,7 +10,7 @@ MAKEFILE      = Makefile.Debug
 ####### Compiler, tools and options
 
 CC            = gcc
-CXX           = g++
+CXX           = g++ -std=c++11
 DEFINES       = -DOSITRANSPORT_LIBRARY -DQT_QML_DEBUG -DQT_DECLARATIVE_DEBUG -DQT_NETWORK_LIB -DQT_TESTLIB_LIB -DQT_CORE_LIB -DQT_TESTCASE_BUILDDIR=\"/home/alexey/workprjs/ositransport\"
 CFLAGS        = -pipe -g -Wall -W -D_REENTRANT -fPIC $(DEFINES)
 CXXFLAGS      = -pipe -g -Wall -W -D_REENTRANT -fPIC $(DEFINES)
@@ -33,7 +33,7 @@ TAR           = tar -cf
 COMPRESS      = gzip -9f
 DISTNAME      = ositransportd0.0.0.0
 DISTDIR = /home/alexey/workprjs/ositransport/build/debug/ositransportd0.0.0.0
-LINK          = g++
+LINK          = g++ -std=c++11
 LFLAGS        = -Wl,-rpath,/home/alexey/Qt/Qt5.4.2/5.4/gcc_64 -Wl,-rpath,/home/alexey/Qt/Qt5.4.2/5.4/gcc_64/lib -shared -Wl,-soname,libositransportd.so.0
 LIBS          = $(SUBLIBS) -L/home/alexey/Qt/Qt5.4.2/5.4/gcc_64/lib -lQt5Network -lQt5Test -lQt5Core -lpthread 
 AR            = ar cqs
