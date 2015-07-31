@@ -1,7 +1,7 @@
 #ifndef SERVERTSAP_H
 #define SERVERTSAP_H
 
-#include <QObject>
+#include "ositransport_global.h"
 
 class servertsap : public QObject
 {

@@ -1,7 +1,6 @@
 #ifndef CSERVERTSAP_H
 #define CSERVERTSAP_H
 
-#include <QObject>
 #include "ositransport_global.h"
 
 class OSITRANSPORTSHARED_EXPORT CServerTSAP : public QObject

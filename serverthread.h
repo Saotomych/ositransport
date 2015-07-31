@@ -1,7 +1,7 @@
 #ifndef SERVERTHREAD_H
 #define SERVERTHREAD_H
 
-#include <QObject>
+#include "ositransport_global.h"
 
 class CServerThread : public QObject
 {

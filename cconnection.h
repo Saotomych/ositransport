@@ -1,7 +1,6 @@
 #ifndef CCONNECTION_H
 #define CCONNECTION_H
 
-#include <QObject>
 #include "ositransport_global.h"
 
 class OSITRANSPORTSHARED_EXPORT CConnection : public QObject

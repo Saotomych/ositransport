@@ -2,6 +2,14 @@
 #define OSITRANSPORT_GLOBAL_H
 
 #include <QtCore/qglobal.h>
+#include <QObject>
+#include <QTcpSocket>
+#include <QHostAddress>
+#include <QString>
+#include <QMutex>
+#include <QDebug>
+#include <QString>
+#include <QHostInfo>
 
 #if defined(OSITRANSPORT_LIBRARY)
 #  define OSITRANSPORTSHARED_EXPORT Q_DECL_EXPORT
