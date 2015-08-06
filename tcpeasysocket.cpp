@@ -12,8 +12,34 @@ CTcpEasySocket::CTcpEasySocket():
 		host((unsigned int)0),
 		port(0),
 		localHost((unsigned int)0),
-		localPort(0)
+		localPort(0),
+		m_messageTimeout(TCP_EASY_SOCKET_DEFAULT_TIMEOUT),
+		m_messageFragmentTimeout(TCP_EASY_SOCKET_DEFAULT_TIMEOUT)
 {
+}
+
+CTcpEasySocket::CTcpEasySocket(const CTcpEasySocket& that)
+{
+	strhost = that.strhost;
+	host = that.host;
+	port = that.port;
+	localHost = that.localHost;
+	localPort = that.localPort;
+	m_messageTimeout = that.m_messageTimeout;
+	m_messageFragmentTimeout = that.m_messageFragmentTimeout;
+}
+
+CTcpEasySocket CTcpEasySocket::operator=(const CTcpEasySocket& that)
+{
+	strhost = that.strhost;
+	host = that.host;
+	port = that.port;
+	localHost = that.localHost;
+	localPort = that.localPort;
+	m_messageTimeout = that.m_messageTimeout;
+	m_messageFragmentTimeout = that.m_messageFragmentTimeout;
+
+	return *this;
 }
 
 CTcpEasySocket::~CTcpEasySocket() {

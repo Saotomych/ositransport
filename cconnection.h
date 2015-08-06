@@ -3,15 +3,16 @@
 
 #include "ositransport_global.h"
 #include "tcpeasysocket.h"
+#include "serverthread.h"
 
 class OSITRANSPORTSHARED_EXPORT CConnection
 {
 private:
-	CTcpEasySocket m_socket;
-	CDataOutputStream* m_os;
-	CDataInputStream* m_is;
+	CTcpEasySocket* m_pSocket;
+	QScopedPointer<QDataStream> m_pOs;
+	QScopedPointer<QDataStream> m_pIs;
 
-	static qint32 s_connectionCounter = 0;
+	static qint32 s_connectionCounter;
 
 	QVector<quint8> m_tSelRemote;
 	QVector<quint8> m_tSelLocal;
@@ -20,21 +21,26 @@ private:
 	qint32 m_dstRef;
 	qint32 m_maxTPduSizeParam;
 	qint32 m_maxTPduSize;
-	qint32 m_messagetimeout;
+	qint32 m_messageTimeout;
 	qint32 m_messageFragmentTimeout;
 
 	bool m_closed;
 
-	CServerThread serverThread;
+	CServerThread* m_pServerThread;
 
 	explicit CConnection(){}
-	explicit CConnection(CConnection& that){}
-	CConnection operator=(CConnection& r){return r;}
+	CConnection& operator=(const CConnection& that){ return *this;}
 
 public:
 
-	CConnection(CTcpEasySocket socket, quint32 maxTPduSizeParam, qint32 messagetimeout,
-				qint32 m_messageTimeout, CServerThread serverThread);
+	CConnection(const CConnection& that);
+
+	CConnection(CTcpEasySocket* socket, quint32 maxTPduSizeParam, qint32 m_messageTimeout,
+				qint32 m_messageFragmentTimeout, CServerThread* pServerThread);
+
+	void setSelRemote(QVector<quint8>& tSelRemote);
+
+	void setSelLocal(QVector<quint8>& tSelLocal);
 
 	/**
 	 * This function is called once a client has connected to the server. It listens for a Connection Request (CR). If
@@ -62,8 +68,9 @@ public:
 	 * @param lengths
 	 * 			Lengths of buffers
 	 */
-	void send(QLinkedList<QVector<qint8> > tsdus, QLinkedList<qint32> offsets, QLinkedList<qint32> lengths);
-	void send(QVector<qint8> tsdu, qint32 offset, qint32 length);
+	void send(QLinkedList<QVector<qint8> > tsdus, QLinkedList<quint32> offsets, QLinkedList<quint32> lengths);
+
+	void send(QVector<qint8> tsdu, quint32 offset, quint32 length);
 
 	/**
 	 * @return messageTimeout
@@ -90,9 +97,7 @@ public:
 	 * @param messageFragmentTimeout
 	 *            in milliseconds
 	 */
-	void setMessageFragmentTimeout(int messageFragmentTimeout) {
-		m_messageFragmentTimeout = messageFragmentTimeout;
-	}
+	void setMessageFragmentTimeout(int messageFragmentTimeout);
 
 	/**
 	 * Listens for a new TPDU and writes the extracted TSDU into the passed buffer.

@@ -23,7 +23,7 @@ CTcpEasySocket CSocketFactory::CreateSocket()
  * Creates a socket and connects it to the specified remote host at the specified remote port.
  * This socket is configured using the socket options established for this factory.
  */
-CTcpEasySocket CSocketFactory::CreateSocket(QString host, qint16 port)
+CTcpEasySocket CSocketFactory::CreateSocket(QString host, quint16 port)
 {
 	CTcpEasySocket ts;
 	ts.connectToHost(host, port);
@@ -36,7 +36,7 @@ CTcpEasySocket CSocketFactory::CreateSocket(QString host, qint16 port)
  * Creates a socket and connects it to the specified port number at the specified address.
  * This socket is configured using the socket options established for this factory.
  */
-CTcpEasySocket CSocketFactory::CreateSocket(QHostAddress host, qint16 port)
+CTcpEasySocket CSocketFactory::CreateSocket(QHostAddress host, quint16 port)
 {
 	CTcpEasySocket ts;
 	ts.connectToHost(host, port);
@@ -50,7 +50,7 @@ CTcpEasySocket CSocketFactory::CreateSocket(QHostAddress host, qint16 port)
  * The socket will also be bound to the local address and port supplied.
  * This socket is configured using the socket options established for this factory.
  */
-CTcpEasySocket CSocketFactory::CreateSocket(QString host, qint16 port, QHostAddress localHost, qint16 localPort)
+CTcpEasySocket CSocketFactory::CreateSocket(QString host, quint16 port, QHostAddress localHost, quint16 localPort)
 {
 	CTcpEasySocket ts;
 	ts.setLocalHostPort(localHost, localPort);
@@ -65,7 +65,7 @@ CTcpEasySocket CSocketFactory::CreateSocket(QString host, qint16 port, QHostAddr
  * The socket will also be bound to the local address and port supplied.
  * The socket is configured using the socket options established for this factory.
  */
-CTcpEasySocket CSocketFactory::CreateSocket(QHostAddress host, qint16 port, QHostAddress localHost, qint16 localPort)
+CTcpEasySocket CSocketFactory::CreateSocket(QHostAddress host, quint16 port, QHostAddress localHost, quint16 localPort)
 {
 	CTcpEasySocket ts;
 	ts.setLocalHostPort(localHost, localPort);

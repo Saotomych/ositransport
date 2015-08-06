@@ -1,11 +1,15 @@
 #include "cclienttsap.h"
 
-CClientTSAP::CClientTSAP(): m_messageTimeout(0), m_messageFragmentTimeout(60000), m_maxTPDUSizeParam(65531)
+CClientTSAP::CClientTSAP():
+		m_pSocketFactory(nullptr),
+		m_messageTimeout(0),
+		m_messageFragmentTimeout(60000),
+		m_maxTPDUSizeParam(65531)
 {
 }
 
 CClientTSAP::CClientTSAP(CSocketFactory& socketFactory):
-		m_socketFactory(socketFactory),
+		m_pSocketFactory(&socketFactory),
 		m_messageTimeout(0),
 		m_messageFragmentTimeout(60000),
 		m_maxTPDUSizeParam(65531)
@@ -33,33 +37,39 @@ int CClientTSAP::getMaxTPDUSizeParam()
 	return m_maxTPDUSizeParam;
 }
 
-static int CClientTSAP::getMaxTPDUSize(int maxTPduSizeParam)
+int CClientTSAP::getMaxTPDUSize(int maxTPDUSizeParam)
 {
-	if (maxTPduSizeParam < 7 || maxTPduSizeParam > 16) throw new CExIllegalArgument("setMaxTPDUSizeParam: Is out of bound");
+	if (maxTPDUSizeParam < 7 || maxTPDUSizeParam > 16) throw new CExIllegalArgument("setMaxTPDUSizeParam: Is out of bound");
 
-	if (maxTPduSizeParam == 16)
+	if (maxTPDUSizeParam == 16)
 		return 65531;
 	else
-		return pow(2, maxTPduSizeParam);
+		return pow(2, maxTPDUSizeParam);
 }
 
-CConnection CClientTSAP::connectTo(QHostAddress address, qint16 port)
+CConnection CClientTSAP::connectTo(QHostAddress address, quint16 port)
 {
 	QHostAddress lA((quint32) 0);
 	return connectTo(address, port, lA, -1);
 }
 
-CConnection CClientTSAP::connectTo(QHostAddress address, qint16 port, QHostAddress localAddr, qint16 localPort)
+CConnection CClientTSAP::connectTo(QHostAddress address, quint16 port, QHostAddress localAddr, quint16 localPort)
 {
+	if (m_pSocketFactory == nullptr)
+	{
+		qDebug() << "Pointer to Socket Factory is NULL";
+		throw CExIllegalClassMember("m_pSocketFactory is NULL!");
+	}
+
 	CTcpEasySocket socket;
 	if (localAddr.isNull())
-		m_socketFactory.CreateSocket(address, port);
+		socket = m_pSocketFactory->CreateSocket(address, port);
 	else
-		m_socketFactory.CreateSocket(address, port, localAddr, localPort);
+		socket = m_pSocketFactory->CreateSocket(address, port, localAddr, localPort);
 
-	CConnection connection = new CConnection(socket, m_maxTPduSizeParam, m_messageTimeout, m_messageFragmentTimeout, nullptr);
-	connection.tSelRemote = tSelRemote;
-	connection.tSelLocal = tSelLocal;
+	CConnection connection(&socket, m_maxTPDUSizeParam, m_messageTimeout, m_messageFragmentTimeout, nullptr);
+	connection.setSelRemote(tSelRemote);
+	connection.setSelLocal(tSelLocal);
 	connection.startConnection();
 
 	return connection;
@@ -67,5 +77,5 @@ CConnection CClientTSAP::connectTo(QHostAddress address, qint16 port, QHostAddre
 
 void CClientTSAP::setSocketFactory(CSocketFactory& socketFactory)
 {
-	m_socketFactory = socketFactory;
+	m_pSocketFactory = &socketFactory;
 }

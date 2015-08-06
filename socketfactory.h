@@ -9,6 +9,7 @@
 #define SOCKETFACTORY_H_
 
 #include "ositransport_global.h"
+#include "tcpeasysocket.h"
 
 /*
  *  QSocketFactory creates CTcpEasySockets
@@ -21,14 +22,14 @@ private:
 	CSocketFactory(const CSocketFactory& that){}
 	CSocketFactory& operator=(const CSocketFactory& that){ return *this;}
 
-	static const CSocketFactory* inst;
+	static CSocketFactory* inst;
 
 	static QMutex mut;
 
 	int connect_tout;
 
 public:
-	static const CSocketFactory& GetSocketFactory()
+	static CSocketFactory* const GetSocketFactory()
 	{
 		mut.lock();
 
@@ -39,16 +40,16 @@ public:
 
 		mut.unlock();
 
-		return *inst;
+		return inst;
 	}
 
 	void SetConnectTimeout(int tout);
 
 	CTcpEasySocket CreateSocket();
-	CTcpEasySocket CreateSocket(QString host, qint16 port);
-	CTcpEasySocket CreateSocket(QHostAddress host, qint16 port);
-	CTcpEasySocket CreateSocket(QString host, qint16 port, QHostAddress localHost, qint16 localPort);
-	CTcpEasySocket CreateSocket(QHostAddress host, qint16 port, QHostAddress localHost, qint16 localPort);
+	CTcpEasySocket CreateSocket(QString host, quint16 port);
+	CTcpEasySocket CreateSocket(QHostAddress host, quint16 port);
+	CTcpEasySocket CreateSocket(QString host, quint16 port, QHostAddress localHost, quint16 localPort);
+	CTcpEasySocket CreateSocket(QHostAddress host, quint16 port, QHostAddress localHost, quint16 localPort);
 };
 
 

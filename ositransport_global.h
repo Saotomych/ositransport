@@ -8,6 +8,10 @@
 #include <QMutex>
 #include <QDebug>
 #include <QHostInfo>
+#include <QScopedPointer>
+#include <QLinkedList>
+#include <QVector>
+#include <QDebug>
 
 #if defined(OSITRANSPORT_LIBRARY)
 #  define OSITRANSPORTSHARED_EXPORT Q_DECL_EXPORT

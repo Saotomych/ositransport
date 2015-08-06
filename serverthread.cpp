@@ -1,6 +1,9 @@
 #include "serverthread.h"
 
-CServerThread::CServerThread(QObject *parent) :
-    QObject(parent)
+CServerThread::CServerThread()
+{
+}
+
+CServerThread::CServerThread(const CServerThread& that)
 {
 }

@@ -3,15 +3,11 @@
 
 #include "ositransport_global.h"
 
-class CServerThread : public QObject
+class CServerThread
 {
-    Q_OBJECT
 public:
-    explicit CServerThread(QObject *parent = 0);
-
-signals:
-
-public slots:
+    CServerThread();
+    CServerThread(const CServerThread& that);
 
 };
 
