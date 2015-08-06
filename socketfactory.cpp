@@ -27,6 +27,7 @@ CTcpEasySocket CSocketFactory::CreateSocket(QString host, qint16 port)
 {
 	CTcpEasySocket ts;
 	ts.connectToHost(host, port);
+	ts.waitForConnected(connect_tout);
 
 	return ts;
 }

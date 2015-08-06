@@ -5,10 +5,8 @@
 #include <QObject>
 #include <QTcpSocket>
 #include <QHostAddress>
-#include <QString>
 #include <QMutex>
 #include <QDebug>
-#include <QString>
 #include <QHostInfo>
 
 #if defined(OSITRANSPORT_LIBRARY)
