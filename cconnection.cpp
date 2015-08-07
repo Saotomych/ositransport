@@ -363,7 +363,16 @@ void CConnection::send(QLinkedList<QVector<char> > tsdus, QLinkedList<quint32> o
 
 void CConnection::send(QVector<char> tsdu, quint32 offset, quint32 length)
 {
+	QLinkedList<QVector<char> > tsdus;
+	tsdus.push_back(tsdu);
 
+	QLinkedList<quint32> offsets;
+	offsets.push_back(offset);
+
+	QLinkedList<quint32> lengths;
+	lengths.push_back(length);
+
+	send(tsdus, offsets, lengths);
 }
 
 quint32 CConnection::getMessageTimeout()
