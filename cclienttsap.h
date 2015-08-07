@@ -15,8 +15,8 @@ private:
 	quint32 m_messageFragmentTimeout;
 	quint32 m_maxTPDUSizeParam;
 
-	QVector<quint8> tSelRemote;
-	QVector<quint8> tSelLocal;
+	QVector<char> m_tSelRemote;
+	QVector<char> m_tSelLocal;
 
     CClientTSAP();
 
@@ -90,7 +90,7 @@ public:
 	 * @throws IOException
 	 *             is thrown if connection was unsuccessful.
 	 */
-	CConnection connectTo(QHostAddress address, quint16 port);
+	QSharedPointer<CConnection> connectTo(QHostAddress address, quint16 port);
 
 	/**
 	 * Connect to a remote TSAP that is listening at the destination address.
@@ -107,7 +107,7 @@ public:
 	 * @throws IOException
 	 *             is thrown if connection was unsuccessful.
 	 */
-	CConnection connectTo(QHostAddress address, quint16 port, QHostAddress localAddr, quint16 localPort);
+	QSharedPointer<CConnection> connectTo(QHostAddress address, quint16 port, QHostAddress localAddr, quint16 localPort);
 
 	/**
 	 * Set created socketFactory to Client

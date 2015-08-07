@@ -8,39 +8,47 @@
 class OSITRANSPORTSHARED_EXPORT CConnection
 {
 private:
+
+	const quint8 c_CRCDT;
+	const quint8 c_CCCDT;
+
 	CTcpEasySocket* m_pSocket;
 	QScopedPointer<QDataStream> m_pOs;
 	QScopedPointer<QDataStream> m_pIs;
 
 	static qint32 s_connectionCounter;
+	static QMutex s_mutexConCounter;
 
-	QVector<quint8> m_tSelRemote;
-	QVector<quint8> m_tSelLocal;
+	QVector<char> m_tSelRemote;
+	QVector<char> m_tSelLocal;
 
 	qint32 m_srcRef;
 	qint32 m_dstRef;
-	qint32 m_maxTPduSizeParam;
-	qint32 m_maxTPduSize;
+	qint32 m_maxTPDUSizeParam;
+	qint32 m_maxTPDUSize;
 	qint32 m_messageTimeout;
 	qint32 m_messageFragmentTimeout;
-
 	bool m_closed;
-
 	CServerThread* m_pServerThread;
 
-	explicit CConnection(){}
-	CConnection& operator=(const CConnection& that){ return *this;}
+	explicit CConnection();
+	CConnection& operator=(const CConnection& that);
+	CConnection(const CConnection& that);
+
+	quint32 readRFC1006Header();
+	quint32 writeRFC1006Header();
+	quint32 writeRFC1006CR(QVector<char>& tSel1, QVector<char>& tSel2, qint8 cdtCode);
+	quint32 readUserDataBlock(QVector<char>& tSel);
 
 public:
 
-	CConnection(const CConnection& that);
 
 	CConnection(CTcpEasySocket* socket, quint32 maxTPduSizeParam, qint32 m_messageTimeout,
 				qint32 m_messageFragmentTimeout, CServerThread* pServerThread);
 
-	void setSelRemote(QVector<quint8>& tSelRemote);
+	void setSelRemote(QVector<char>& tSelRemote);
 
-	void setSelLocal(QVector<quint8>& tSelLocal);
+	void setSelLocal(QVector<char>& tSelLocal);
 
 	/**
 	 * This function is called once a client has connected to the server. It listens for a Connection Request (CR). If
