@@ -89,6 +89,78 @@ quint32 CConnection::readUserDataBlock(QVector<char>& tSel)
 	return parameterLength;
 }
 
+quint32 CConnection::readRFC1006CR(quint32 lengthIndicator, qint8 cdtCode)
+{
+	qint8 data8;
+	qint16 data16;
+
+	// 0xe0 - CR code
+	*m_pIs >> data8;
+	if (data8 != cdtCode)  throw OSIExceptions::CExIOError("Error: RFC 1006 CR-code failed!");
+
+	// DST-REF needs to be 0 in a CR packet
+	*m_pIs >> data16;
+	if (data16 != 0)  throw OSIExceptions::CExIOError("Error: RFC 1006 DST-REF in CR failed!");
+
+	// SRC REF which is the dstRef fot this endpoint
+	*m_pIs >> data16;
+	m_dstRef = data16;
+
+	// Read class
+	*m_pIs >> data8;
+	if (data8 != 0)  throw OSIExceptions::CExIOError("Error: Read class failed!");
+
+	quint32 variableBytesRead = 0;
+	while (lengthIndicator > (6 + variableBytesRead))
+	{
+		// read parameter code
+		*m_pIs >> data8;
+		switch (data8)
+		{
+		case 0xC2:
+			{
+
+				variableBytesRead += 2 + readUserDataBlock(m_tSelLocal);
+			}
+			break;
+
+		case 0xC1:
+			{
+				variableBytesRead += 2 + readUserDataBlock(m_tSelRemote);
+			}
+			break;
+		case 0xC0:
+			{
+				*m_pIs >> data8;
+				if (data8 != 1)
+					throw OSIExceptions::CExIOError("Error: CConnection::listenForCR: case 0xC0!");
+
+				*m_pIs >> data8;
+				quint8 newMaxTPDUSizeParam = data8;
+				if (newMaxTPDUSizeParam < 7 || newMaxTPDUSizeParam > 16)
+				{
+					throw OSIExceptions::CExIOError("Error: newMaxTPDUSizeParam is out of bound!");
+				}
+				else
+				{
+					if (newMaxTPDUSizeParam < m_maxTPDUSizeParam)
+					{
+						m_maxTPDUSizeParam = newMaxTPDUSizeParam;
+						m_maxTPDUSize = CClientTSAP::getMaxTPDUSize(m_maxTPDUSizeParam);
+					}
+				}
+				variableBytesRead += 3;
+			}
+			break;
+
+		default:
+			throw OSIExceptions::CExIOError("Error: CConnection::listenForCR: Unknown case!");
+		}
+	}
+
+	return variableBytesRead;
+}
+
 quint32 CConnection::writeRFC1006Header()
 {
 	quint16 data16;
@@ -159,69 +231,8 @@ void CConnection::listenForCR()
 	// start reading rfc 1006 header hardcode
 	quint8 lengthIndicator = readRFC1006Header();
 
-	// 0xe0 - CR code
-	*m_pIs >> data8;
-	if (data8 != 0xe0)  throw OSIExceptions::CExIOError("Error: RFC 1006 CR-code failed!");
+	quint32 variableBytesRead = readRFC1006CR(lengthIndicator, c_CRCDT);
 
-	// DST-REF needs to be 0 in a CR packet
-	*m_pIs >> data16;
-	if (data16 != 0)  throw OSIExceptions::CExIOError("Error: RFC 1006 DST-REF in CR failed!");
-
-	// SRC REF which is the dstRef fot this endpoint
-	*m_pIs >> data16;
-	m_dstRef = data16;
-
-	// Read class
-	*m_pIs >> data8;
-	if (data8 != 0)  throw OSIExceptions::CExIOError("Error: Read class failed!");
-
-	quint32 variableBytesRead = 0;
-	while (lengthIndicator > (6 + variableBytesRead))
-	{
-		// read parameter code
-		*m_pIs >> data8;
-		switch (data8)
-		{
-		case 0xC2:
-			{
-
-				variableBytesRead += 2 + readUserDataBlock(m_tSelLocal);
-			}
-			break;
-
-		case 0xC1:
-			{
-				variableBytesRead += 2 + readUserDataBlock(m_tSelRemote);
-			}
-			break;
-		case 0xC0:
-			{
-				*m_pIs >> data8;
-				if (data8 != 1)
-					throw OSIExceptions::CExIOError("Error: CConnection::listenForCR: case 0xC0!");
-
-				*m_pIs >> data8;
-				quint8 newMaxTPDUSizeParam = data8;
-				if (newMaxTPDUSizeParam < 7 || newMaxTPDUSizeParam > 16)
-				{
-					throw OSIExceptions::CExIOError("Error: newMaxTPDUSizeParam is out of bound!");
-				}
-				else
-				{
-					if (newMaxTPDUSizeParam < m_maxTPDUSizeParam)
-					{
-						m_maxTPDUSizeParam = newMaxTPDUSizeParam;
-						m_maxTPDUSize = CClientTSAP::getMaxTPDUSize(m_maxTPDUSizeParam);
-					}
-				}
-				variableBytesRead += 3;
-			}
-			break;
-
-		default:
-			throw OSIExceptions::CExIOError("Error: CConnection::listenForCR: Unknown case!");
-		}
-	}
 
 	// write RFC 1006 header
 	quint32 variableLength = writeRFC1006Header();
@@ -243,6 +254,11 @@ void CConnection::startConnection()
 	variableLength += writeRFC1006CR(m_tSelRemote, m_tSelLocal, c_CRCDT);
 
 	m_pSocket->setMessageTimeout(m_messageTimeout);
+
+	// start reading rfc 1006 header hardcode
+	quint8 lengthIndicator = readRFC1006Header();
+
+	quint32 variableBytesRead = readRFC1006CR(lengthIndicator, c_CCCDT);
 
 }
 

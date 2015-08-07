@@ -36,6 +36,7 @@ private:
 	CConnection(const CConnection& that);
 
 	quint32 readRFC1006Header();
+	quint32 readRFC1006CR(quint32 lengthIndicator, qint8 cdtCode);
 	quint32 writeRFC1006Header();
 	quint32 writeRFC1006CR(QVector<char>& tSel1, QVector<char>& tSel2, qint8 cdtCode);
 	quint32 readUserDataBlock(QVector<char>& tSel);
