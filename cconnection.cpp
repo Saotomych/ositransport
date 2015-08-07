@@ -4,9 +4,6 @@
 
 qint32 CConnection::s_connectionCounter = 0;
 
-qint8 CConnection::c_CRCDT = 0xe0;
-qint8 CConnection::c_CCCDT = 0xd0;
-
 CConnection::CConnection(CTcpEasySocket* socket,
 						quint32 maxTPduSizeParam,
 						qint32 messageTimeout,
@@ -20,7 +17,9 @@ m_maxTPDUSize(0),
 m_messageTimeout(messageTimeout),
 m_messageFragmentTimeout(messageFragmentTimeout),
 m_closed(true),
-m_pServerThread(pServerThread)
+m_pServerThread(pServerThread),
+c_CRCDT(0xe0),
+c_CCCDT(0xd0)
 {
 	QScopedPointer<QDataStream> os(new QDataStream(socket));
 	m_pOs.swap(os);
@@ -89,7 +88,7 @@ quint32 CConnection::readUserDataBlock(QVector<char>& tSel)
 	return parameterLength;
 }
 
-quint32 CConnection::readRFC1006CR(quint32 lengthIndicator, qint8 cdtCode)
+quint32 CConnection::readRFC1006CR(QVector<char>& tSel1, QVector<char>& tSel2, quint32 lengthIndicator, qint8 cdtCode)
 {
 	qint8 data8;
 	qint16 data16;
@@ -120,13 +119,13 @@ quint32 CConnection::readRFC1006CR(quint32 lengthIndicator, qint8 cdtCode)
 		case 0xC2:
 			{
 
-				variableBytesRead += 2 + readUserDataBlock(m_tSelLocal);
+				variableBytesRead += 2 + readUserDataBlock(tSel1);
 			}
 			break;
 
 		case 0xC1:
 			{
-				variableBytesRead += 2 + readUserDataBlock(m_tSelRemote);
+				variableBytesRead += 2 + readUserDataBlock(tSel2);
 			}
 			break;
 		case 0xC0:
@@ -177,6 +176,28 @@ quint32 CConnection::writeRFC1006Header()
 	return variableLength;
 }
 
+quint32 CConnection::writeRFC1006Header(quint32 size)
+{
+	quint16 data16;
+	quint32 variableLength=3;
+
+	*m_pOs << (char)0x03 << (char)0x00;
+
+	if (size) variableLength += 2 + size;
+
+	data16 = 2 +  variableLength;
+	*m_pOs << data16;
+
+	return variableLength;
+}
+
+quint32 CConnection::write8073Header(quint8 lastCode)
+{
+	*m_pOs << (char)0x02 << (char)0xf0 << lastCode;
+
+	return 3;
+}
+
 quint32 CConnection::writeRFC1006CR(QVector<char>& tSel1, QVector<char>& tSel2, qint8 cdtCode)
 {
 	quint16 data16;
@@ -220,6 +241,11 @@ quint32 CConnection::writeRFC1006CR(QVector<char>& tSel1, QVector<char>& tSel2, 
 	return variableLength;
 }
 
+quint32 CConnection::writeBuffer(QVector<char> buffer, quint32 offset, quint32 len)
+{
+
+}
+
 void CConnection::listenForCR()
 {
 
@@ -231,7 +257,7 @@ void CConnection::listenForCR()
 	// start reading rfc 1006 header hardcode
 	quint8 lengthIndicator = readRFC1006Header();
 
-	quint32 variableBytesRead = readRFC1006CR(lengthIndicator, c_CRCDT);
+	quint32 variableBytesRead = readRFC1006CR(m_tSelLocal, m_tSelRemote, lengthIndicator, c_CRCDT);
 
 
 	// write RFC 1006 header
@@ -258,16 +284,84 @@ void CConnection::startConnection()
 	// start reading rfc 1006 header hardcode
 	quint8 lengthIndicator = readRFC1006Header();
 
-	quint32 variableBytesRead = readRFC1006CR(lengthIndicator, c_CCCDT);
+	quint32 variableBytesRead = readRFC1006CR(m_tSelRemote, m_tSelLocal, lengthIndicator, c_CCCDT);
 
 }
 
-void CConnection::send(QLinkedList<QVector<qint8> > tsdus, QLinkedList<quint32> offsets, QLinkedList<quint32> lengths)
+void CConnection::send(QLinkedList<QVector<char> > tsdus, QLinkedList<quint32> offsets, QLinkedList<quint32> lengths)
 {
+	quint32 bytesLeft;
+	for (quint32 length: lengths) bytesLeft+=length;
+
+	quint32 tsduOffset = 0;
+	quint32 numBytesToWrite;
+	quint32 maxTSDUSize = m_maxTPDUSize - 3;
+
+	while (bytesLeft)
+	{
+		if (bytesLeft > maxTSDUSize)
+		{
+			writeRFC1006Header(maxTSDUSize);
+			numBytesToWrite = maxTSDUSize;
+			write8073Header(0x00);
+		}
+		else
+		{
+			writeRFC1006Header(bytesLeft);
+			numBytesToWrite = bytesLeft;
+			write8073Header(0x80);
+		}
+
+		bytesLeft -= numBytesToWrite;
+
+		auto it_tsdu = tsdus.begin();
+		auto it_len = lengths.begin();
+		auto it_offset = offsets.begin();
+
+		while (numBytesToWrite)
+		{
+
+			QVector<char>& tsdu = *it_tsdu;
+			quint32 len = *it_len;
+			quint32 offset = *it_offset;
+
+			quint32 tsduWrLen = len - tsduOffset;
+
+			if (numBytesToWrite > tsduWrLen)
+			{
+				m_pOs->writeRawData(&tsdu[tsduOffset+offset], tsduWrLen);
+				numBytesToWrite -= tsduWrLen;
+				tsduOffset = 0;
+
+				it_tsdu++;
+				it_len++;
+				it_offset++;
+			}
+			else
+			{
+				m_pOs->writeRawData(&tsdu[tsduOffset+offset], numBytesToWrite);
+				if (numBytesToWrite == tsduWrLen)
+				{
+					tsduOffset = 0;
+
+					it_tsdu++;
+					it_len++;
+					it_offset++;
+				}
+				else
+				{
+					tsduOffset += numBytesToWrite;
+				}
+
+				numBytesToWrite = 0;
+			}
+		}
+
+	}
 
 }
 
-void CConnection::send(QVector<qint8> tsdu, quint32 offset, quint32 length)
+void CConnection::send(QVector<char> tsdu, quint32 offset, quint32 length)
 {
 
 }

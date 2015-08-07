@@ -36,13 +36,16 @@ private:
 	CConnection(const CConnection& that);
 
 	quint32 readRFC1006Header();
-	quint32 readRFC1006CR(quint32 lengthIndicator, qint8 cdtCode);
-	quint32 writeRFC1006Header();
-	quint32 writeRFC1006CR(QVector<char>& tSel1, QVector<char>& tSel2, qint8 cdtCode);
+	quint32 readRFC1006CR(QVector<char>& tSel1, QVector<char>& tSel2, quint32 lengthIndicator, qint8 cdtCode);
 	quint32 readUserDataBlock(QVector<char>& tSel);
 
-public:
+	quint32 writeRFC1006Header();
+	quint32 writeRFC1006Header(quint32 size);
+	quint32 write8073Header(quint8 lastCode);
+	quint32 writeRFC1006CR(QVector<char>& tSel1, QVector<char>& tSel2, qint8 cdtCode);
+	quint32 writeBuffer(QVector<char> buffer, quint32 offset, quint32 len);
 
+public:
 
 	CConnection(CTcpEasySocket* socket, quint32 maxTPduSizeParam, qint32 m_messageTimeout,
 				qint32 m_messageFragmentTimeout, CServerThread* pServerThread);
@@ -77,9 +80,9 @@ public:
 	 * @param lengths
 	 * 			Lengths of buffers
 	 */
-	void send(QLinkedList<QVector<qint8> > tsdus, QLinkedList<quint32> offsets, QLinkedList<quint32> lengths);
+	void send(QLinkedList<QVector<char> > tsdus, QLinkedList<quint32> offsets, QLinkedList<quint32> lengths);
 
-	void send(QVector<qint8> tsdu, quint32 offset, quint32 length);
+	void send(QVector<char> tsdu, quint32 offset, quint32 length);
 
 	/**
 	 * @return messageTimeout
