@@ -8,17 +8,19 @@
 #include "tcpeasysocket.h"
 
 CTcpEasySocket::CTcpEasySocket():
+		c_DefaultTimeout(TCP_EASY_SOCKET_DEFAULT_TIMEOUT),
 		strhost(QString("")),
 		host((unsigned int)0),
 		port(0),
 		localHost((unsigned int)0),
 		localPort(0),
-		m_messageTimeout(TCP_EASY_SOCKET_DEFAULT_TIMEOUT),
-		m_messageFragmentTimeout(TCP_EASY_SOCKET_DEFAULT_TIMEOUT)
+		m_messageTimeout(c_DefaultTimeout),
+		m_messageFragmentTimeout(c_DefaultTimeout)
 {
 }
 
-CTcpEasySocket::CTcpEasySocket(const CTcpEasySocket& that)
+CTcpEasySocket::CTcpEasySocket(const CTcpEasySocket& that):
+				c_DefaultTimeout(TCP_EASY_SOCKET_DEFAULT_TIMEOUT)
 {
 	strhost = that.strhost;
 	host = that.host;
@@ -45,7 +47,7 @@ CTcpEasySocket CTcpEasySocket::operator=(const CTcpEasySocket& that)
 CTcpEasySocket::~CTcpEasySocket() {
 }
 
-bool CTcpEasySocket::waitForConnected(int msec)
+bool CTcpEasySocket::waitForConnected(quint32 msec)
 {
 	if (!QTcpSocket::waitForConnected(msec))
 	{
@@ -86,4 +88,9 @@ void CTcpEasySocket::connectToHost(QString strhost, qint16 port)
 	this->host = 0;
 	this->port = port;
 	QTcpSocket::connectToHost(host, port);
+}
+
+void CTcpEasySocket::setMessageTimeout(quint32 messageTimeout = c_DefaultTimeout)
+{
+	m_messageTimeout = messageTimeout;
 }

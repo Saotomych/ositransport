@@ -10,11 +10,15 @@
 
 #include "ositransport_global.h"
 
-#define TCP_EASY_SOCKET_DEFAULT_TIMEOUT		30000
+#define TCP_EASY_SOCKET_DEFAULT_TIMEOUT	30000
 
 class CTcpEasySocket: public QTcpSocket
 {
+
 private:
+
+	const quint32 c_DefaultTimeout;
+
 	QHostAddress host;
 	QString strhost;
 	qint16 port;
@@ -31,7 +35,7 @@ public:
 
 	~CTcpEasySocket();
 
-	bool waitForConnected(int msecs = TCP_EASY_SOCKET_DEFAULT_TIMEOUT);
+	bool waitForConnected(quint32 msecs = TCP_EASY_SOCKET_DEFAULT_TIMEOUT);
 	bool setLocalHostPort(QHostAddress localHost, qint16 localPort);
 	void connectToHost(QHostAddress host, qint16 port);
 	void connectToHost(QString host, qint16 port);

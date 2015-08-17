@@ -35,7 +35,7 @@ private:
 	CConnection& operator=(const CConnection& that);
 	CConnection(const CConnection& that);
 
-	quint32 readRFC1006Header();
+	quint32 readRFC1006Header(quint16& packetLength);
 	quint32 readRFC1006CR(QVector<char>& tSel1, QVector<char>& tSel2, quint32 lengthIndicator, qint8 cdtCode);
 	quint32 readUserDataBlock(QVector<char>& tSel);
 
@@ -126,7 +126,7 @@ public:
 	 * @throws CExTimeout
 	 *             this exception is thrown if the first byte of new message is not received within the message timeout.
 	 */
-	void receive(QVector<quint8> tSduBuffer);
+	void receive(QByteArray& tSduBuffer);
 
 	/**
 	 * This function sends a Disconnect Request but does not wait for a Disconnect Confirm.

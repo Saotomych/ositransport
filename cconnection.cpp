@@ -41,11 +41,10 @@ void CConnection::setSelLocal(QVector<char>& tSelLocal)
 	m_tSelLocal = tSelLocal;
 }
 
-quint32 CConnection::readRFC1006Header()
+quint32 CConnection::readRFC1006Header(quint16& packetLength)
 {
 	quint8 data8;
 	quint16 data16;
-	quint32 variableLength=3;
 
 	*m_pIs >> data8;
 	if (data8 != 0x03) throw OSIExceptions::CExIOError("Error: RFC 1006 version failed!");
@@ -53,8 +52,9 @@ quint32 CConnection::readRFC1006Header()
 	*m_pIs >> data8;
 	if (data8 != 0x00) throw OSIExceptions::CExIOError("Error: RFC 1006 reserved byte failed!");
 
-	// read packet length but is not needed
+	// read packet length
 	*m_pIs >> data16;
+	packetLength = data16;
 
 	*m_pIs >> data8;
 	quint8 lengthIndicator = data8;
@@ -252,10 +252,11 @@ void CConnection::listenForCR()
 	quint8 data8;
 	quint16 data16;
 
-	m_pSocket->setMessageFragmentTimeout(m_messageFragmentTimeout);
+	m_pSocket->waitForReadyRead(m_messageFragmentTimeout);
 
 	// start reading rfc 1006 header hardcode
-	quint8 lengthIndicator = readRFC1006Header();
+	quint16 packetLenght;
+	quint8 lengthIndicator = readRFC1006Header(packetLenght);
 
 	quint32 variableBytesRead = readRFC1006CR(m_tSelLocal, m_tSelRemote, lengthIndicator, c_CRCDT);
 
@@ -266,12 +267,13 @@ void CConnection::listenForCR()
 	// write connection request  CR
 	variableLength += writeRFC1006CR(m_tSelLocal, m_tSelRemote, c_CCCDT);
 
+	m_pSocket->flush();
+
 }
 
 void CConnection::startConnection()
 {
-	quint16 data16;
-	quint8 data8;
+	m_pSocket->waitForConnected(m_messageTimeout);
 
 	// RFC 1006 Header
 	qint32 variableLength = writeRFC1006Header();
@@ -279,18 +281,20 @@ void CConnection::startConnection()
 	// Connection request (CR)
 	variableLength += writeRFC1006CR(m_tSelRemote, m_tSelLocal, c_CRCDT);
 
-	m_pSocket->setMessageTimeout(m_messageTimeout);
-
 	// start reading rfc 1006 header hardcode
-	quint8 lengthIndicator = readRFC1006Header();
+	quint16 packetLength;
+	quint8 lengthIndicator = readRFC1006Header(packetLength);
 
-	quint32 variableBytesRead = readRFC1006CR(m_tSelRemote, m_tSelLocal, lengthIndicator, c_CCCDT);
+	readRFC1006CR(m_tSelRemote, m_tSelLocal, lengthIndicator, c_CCCDT);
 
 }
 
 void CConnection::send(QLinkedList<QVector<char> > tsdus, QLinkedList<quint32> offsets, QLinkedList<quint32> lengths)
 {
-	quint32 bytesLeft;
+
+	m_pSocket->waitForBytesWritten(m_messageTimeout);
+
+	quint32 bytesLeft = 0;
 	for (quint32 length: lengths) bytesLeft+=length;
 
 	quint32 tsduOffset = 0;
@@ -359,6 +363,8 @@ void CConnection::send(QLinkedList<QVector<char> > tsdus, QLinkedList<quint32> o
 
 	}
 
+	m_pSocket->flush();
+
 }
 
 void CConnection::send(QVector<char> tsdu, quint32 offset, quint32 length)
@@ -377,35 +383,112 @@ void CConnection::send(QVector<char> tsdu, quint32 offset, quint32 length)
 
 quint32 CConnection::getMessageTimeout()
 {
-
+	return m_messageTimeout;
 }
 
 void CConnection::setMessageTimeout(int messageTimeout)
 {
-
+	m_messageTimeout = messageTimeout;
 }
 
 quint32 CConnection::getMessageFragmentTimeout()
 {
-
+	return m_messageFragmentTimeout;
 }
 
 void CConnection::setMessageFragmentTimeout(int messageFragmentTimeout) {
 	m_messageFragmentTimeout = messageFragmentTimeout;
 }
 
-void CConnection::receive(QVector<quint8> tSduBuffer)
+void CConnection::receive(QByteArray& tSduBuffer)
 {
+
+	quint16 packetLength = 0;
+	quint32 eot = 0;
+	quint32 LengthIndicator = 0;
+	quint8 tPduCode = 0;
+	quint8 reason = 0;
+
+	quint8 data8;
+	quint16 data16;
+
+	if (m_pSocket->waitForReadyRead(m_messageTimeout) == false) throw OSIExceptions::CExIOError("Error: Received no data.");
+
+	quint8 version;
+	*m_pIs >> version;
+
+	do
+	{
+		packetLength = 0;
+		quint32 lengthIndicator = readRFC1006Header(packetLength);
+
+		if (packetLength <= 7) throw OSIExceptions::CExIOError("Syntax error: packet length parameter < 7.");
+
+		tPduCode = 0;
+		*m_pIs >> tPduCode;
+
+		if (tPduCode == 0xF0)
+		{
+			if (lengthIndicator != 2) throw OSIExceptions::CExIOError("Syntax error: LI field does not equal 2.");
+
+			eot = 0;
+			*m_pIs >> eot;
+			if ( eot != 0 && eot != 0x80 ) throw OSIExceptions::CExIOError("Syntax Error: EOT wrong");
+
+			if ( (packetLength - 7) > tSduBuffer.MaxSize-tSduBuffer.size())
+				throw OSIExceptions::CExIOError("tSduBuffer size is too small to hold the complete TSDU");
+
+			tSduBuffer += m_pSocket->readAll();
+
+		}
+		else if (tPduCode == 0x80) // Disconnect Request - DR (ISO RFC-905 ISO DP 8073)
+		{
+			if (lengthIndicator != 6) throw OSIExceptions::CExIOError("Syntax error: LI field does not equal 6.");
+
+			*m_pIs >> data16;	// Read DST-REF (Source Reference here)
+			if (data16 != m_srcRef) throw OSIExceptions::CExIOError("Syntax error: Source reference wrong.");
+
+			*m_pIs >> data16;	// Read SRC-REF (Destination Reference here)
+			if (data16 != m_dstRef) throw OSIExceptions::CExIOError("Syntax error: Destination reference wrong.");
+
+			// check the reason field only between 1 and 4 for class 0
+			reason = 0;
+			*m_pIs >> reason;
+			if (reason < 0 || reason > 4) throw OSIExceptions::CExIOError("Syntax error: reason out of bound.");
+
+			// Disconnect is valid
+			return;
+		}
+		else if (tPduCode == 0x70) // Error Message - ER (ISO RFC-905 ISO DP 8073)
+		{
+			throw OSIExceptions::CExIOError("Got TPDU Error: ER message.");
+		}
+		else
+		{
+			throw OSIExceptions::CExIOError("Syntax Error: unknown TPDU code.");
+		}
+
+	}while ( eot != 0x80 && (m_pSocket->waitForReadyRead(m_messageFragmentTimeout) == true) );
 
 }
 
 void CConnection::disconnect()
 {
+	quint32 length = writeRFC1006Header();
+	length = write8073Header(length); // Disconnect Request - DR (ISO RFC-905 ISO DP 8073)
 
+	// write reason - 0x00 corresponds to reason not specified
+	*m_pOs << 0x00;
+
+	m_pSocket->flush();
+
+	close();
 }
 
 void CConnection::close()
 {
-
+	m_closed = true;
+	m_pSocket->close();
+	m_pIs->setStatus(QDataStream::WriteFailed);
 }
 

@@ -14,6 +14,7 @@
 #include <QDebug>
 #include <QDataStream>
 #include <QSharedPointer>
+#include <QByteArray>
 
 #if defined(OSITRANSPORT_LIBRARY)
 #  define OSITRANSPORTSHARED_EXPORT Q_DECL_EXPORT
