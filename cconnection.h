@@ -13,9 +13,6 @@ private:
 	const quint8 c_CCCDT;
 
 	CTcpEasySocket* m_pSocket;
-	QScopedPointer<QDataStream> m_pOs;
-	QScopedPointer<QDataStream> m_pIs;
-
 	static qint32 s_connectionCounter;
 	static QMutex s_mutexConCounter;
 
@@ -30,6 +27,9 @@ private:
 	qint32 m_messageFragmentTimeout;
 	bool m_closed;
 	CServerThread* m_pServerThread;
+
+	QScopedPointer<QDataStream> m_pOs;
+	QScopedPointer<QDataStream> m_pIs;
 
 	explicit CConnection();
 	CConnection& operator=(const CConnection& that);

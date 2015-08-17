@@ -9,6 +9,8 @@ CConnection::CConnection(CTcpEasySocket* socket,
 						qint32 messageTimeout,
 						qint32 messageFragmentTimeout,
 						CServerThread* pServerThread):
+c_CRCDT(0xe0),
+c_CCCDT(0xd0),
 m_pSocket(socket),
 m_srcRef(0),
 m_dstRef(0),
@@ -17,9 +19,7 @@ m_maxTPDUSize(0),
 m_messageTimeout(messageTimeout),
 m_messageFragmentTimeout(messageFragmentTimeout),
 m_closed(true),
-m_pServerThread(pServerThread),
-c_CRCDT(0xe0),
-c_CCCDT(0xd0)
+m_pServerThread(pServerThread)
 {
 	QScopedPointer<QDataStream> os(new QDataStream(socket));
 	m_pOs.swap(os);
@@ -90,8 +90,8 @@ quint32 CConnection::readUserDataBlock(QVector<char>& tSel)
 
 quint32 CConnection::readRFC1006CR(QVector<char>& tSel1, QVector<char>& tSel2, quint32 lengthIndicator, qint8 cdtCode)
 {
-	qint8 data8;
-	qint16 data16;
+	quint8 data8;
+	quint16 data16;
 
 	// 0xe0 - CR code
 	*m_pIs >> data8;
@@ -202,10 +202,9 @@ quint32 CConnection::writeRFC1006CR(QVector<char>& tSel1, QVector<char>& tSel2, 
 {
 	quint16 data16;
 	quint32 variableLength=0;
-	quint8 data8;
 
 	// write length indicator
-	data8 = 6 +  variableLength;
+	data16 = 6 +  variableLength;
 	*m_pOs << data16;
 
 	// write fixed part
@@ -249,17 +248,13 @@ quint32 CConnection::writeBuffer(QVector<char> buffer, quint32 offset, quint32 l
 void CConnection::listenForCR()
 {
 
-	quint8 data8;
-	quint16 data16;
-
 	m_pSocket->waitForReadyRead(m_messageFragmentTimeout);
 
 	// start reading rfc 1006 header hardcode
 	quint16 packetLenght;
 	quint8 lengthIndicator = readRFC1006Header(packetLenght);
 
-	quint32 variableBytesRead = readRFC1006CR(m_tSelLocal, m_tSelRemote, lengthIndicator, c_CRCDT);
-
+	readRFC1006CR(m_tSelLocal, m_tSelRemote, lengthIndicator, c_CRCDT);
 
 	// write RFC 1006 header
 	quint32 variableLength = writeRFC1006Header();
@@ -282,7 +277,7 @@ void CConnection::startConnection()
 	variableLength += writeRFC1006CR(m_tSelRemote, m_tSelLocal, c_CRCDT);
 
 	// start reading rfc 1006 header hardcode
-	quint16 packetLength;
+	quint16 packetLength=0;
 	quint8 lengthIndicator = readRFC1006Header(packetLength);
 
 	readRFC1006CR(m_tSelRemote, m_tSelLocal, lengthIndicator, c_CCCDT);
@@ -298,7 +293,7 @@ void CConnection::send(QLinkedList<QVector<char> > tsdus, QLinkedList<quint32> o
 	for (quint32 length: lengths) bytesLeft+=length;
 
 	quint32 tsduOffset = 0;
-	quint32 numBytesToWrite;
+	quint32 numBytesToWrite = 0;
 	quint32 maxTSDUSize = m_maxTPDUSize - 3;
 
 	while (bytesLeft)
@@ -405,22 +400,21 @@ void CConnection::receive(QByteArray& tSduBuffer)
 
 	quint16 packetLength = 0;
 	quint32 eot = 0;
-	quint32 LengthIndicator = 0;
+	quint32 lengthIndicator = 0;
 	quint8 tPduCode = 0;
-	quint8 reason = 0;
+	qint8 reason = 0;
 
-	quint8 data8;
-	quint16 data16;
+	quint16 data16 = 0;
 
 	if (m_pSocket->waitForReadyRead(m_messageTimeout) == false) throw OSIExceptions::CExIOError("Error: Received no data.");
 
-	quint8 version;
+	quint8 version = 0;
 	*m_pIs >> version;
 
 	do
 	{
 		packetLength = 0;
-		quint32 lengthIndicator = readRFC1006Header(packetLength);
+		lengthIndicator = readRFC1006Header(packetLength);
 
 		if (packetLength <= 7) throw OSIExceptions::CExIOError("Syntax error: packet length parameter < 7.");
 
@@ -435,7 +429,7 @@ void CConnection::receive(QByteArray& tSduBuffer)
 			*m_pIs >> eot;
 			if ( eot != 0 && eot != 0x80 ) throw OSIExceptions::CExIOError("Syntax Error: EOT wrong");
 
-			if ( (packetLength - 7) > tSduBuffer.MaxSize-tSduBuffer.size())
+			if ( (quint64)(packetLength - 7) > (tSduBuffer.MaxSize - tSduBuffer.size()))
 				throw OSIExceptions::CExIOError("tSduBuffer size is too small to hold the complete TSDU");
 
 			tSduBuffer += m_pSocket->readAll();

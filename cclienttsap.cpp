@@ -28,7 +28,7 @@ void CClientTSAP::setMessageFragmentTimeout(int messageFragmentTimeout)
 
 void CClientTSAP::setMaxTPDUSizeParam(int maxTPduSizeParam)
 {
-	if (maxTPduSizeParam < 7 || maxTPduSizeParam > 16) throw new OSIExceptions::CExIllegalArgument("setMaxTPDUSizeParam: Is out of bound");
+	if (maxTPduSizeParam < 7 || maxTPduSizeParam > 16) throw OSIExceptions::CExIllegalArgument("setMaxTPDUSizeParam: Is out of bound");
 
 }
 
@@ -39,7 +39,7 @@ int CClientTSAP::getMaxTPDUSizeParam()
 
 int CClientTSAP::getMaxTPDUSize(int maxTPDUSizeParam)
 {
-	if (maxTPDUSizeParam < 7 || maxTPDUSizeParam > 16) throw new OSIExceptions::CExIllegalArgument("setMaxTPDUSizeParam: Is out of bound");
+	if (maxTPDUSizeParam < 7 || maxTPDUSizeParam > 16) throw OSIExceptions::CExIllegalArgument("setMaxTPDUSizeParam: Is out of bound");
 
 	if (maxTPDUSizeParam == 16)
 		return 65531;
