@@ -35,15 +35,40 @@ private:
 	CConnection& operator=(const CConnection& that);
 	CConnection(const CConnection& that);
 
-	quint32 readRFC1006Header(quint16& packetLength);
-	quint32 readRFC1006CR(QVector<char>& tSel1, QVector<char>& tSel2, quint32 lengthIndicator, qint8 cdtCode);
+	struct TRFC905ServiceHeader
+	{
+		TRFC905ServiceHeader():
+			lengthIndicator(0),
+			CRCDT(0),
+			CRCDT(0),
+			dstRef(0),
+			srcRef(0),
+			option(0)
+		{}
+		quint8 lengthIndicator;
+		quint8 CRCDT;
+		quint16 dstRef;
+		quint16 srcRef;
+		quint8 option;		// class, reason or other in context
+	};
+
+	struct TRFC905DataHeader
+	{
+		TRFC905DataHeader(): lengthIndicator(0), PduCode(0) {}
+		quint8 lengthIndicator;
+		quint8 pduCode;
+	};
+
+	quint16 readRFC1006Header();	// Call on start of receiving. Return Packet Length.
+	TRFC905ServiceHeader readRFC905ServiceHeader(qint8 cdtCode, quint8 readClass);	// Return RFC905 header as struct.
+	TRFC905DataHeader readRFC905DataHeader();
+	quint32 readRFC905VariablePart(quint32 lengthIndicator, QVector<char>& tSel1, QVector<char>& tSel2);
 	quint32 readUserDataBlock(QVector<char>& tSel);
 
 	quint32 writeRFC1006Header();
 	quint32 writeRFC1006Header(quint32 size);
-	quint32 write8073Header(quint8 lastCode);
-	quint32 writeRFC1006CR(QVector<char>& tSel1, QVector<char>& tSel2, qint8 cdtCode);
-	quint32 writeBuffer(QVector<char> buffer, quint32 offset, quint32 len);
+	quint32 writeRFC905Header(quint8 lastCode);
+	quint32 writeRFC905Service(QVector<char>& tSel1, QVector<char>& tSel2, qint8 cdtCode);
 
 public:
 
