@@ -5,12 +5,16 @@
 #include "tcpeasysocket.h"
 #include "serverthread.h"
 
-class OSITRANSPORTSHARED_EXPORT CConnection
+class OSITRANSPORTSHARED_EXPORT CConnection: public QObject
 {
+	Q_OBJECT
+
 private:
 
 	const quint8 c_CRCDT;
 	const quint8 c_CCCDT;
+
+	quint32 c_connectionNum;
 
 	CTcpEasySocket* m_pSocket;
 	static qint32 s_connectionCounter;
@@ -40,7 +44,6 @@ private:
 		TRFC905ServiceHeader():
 			lengthIndicator(0),
 			CRCDT(0),
-			CRCDT(0),
 			dstRef(0),
 			srcRef(0),
 			option(0)
@@ -54,7 +57,7 @@ private:
 
 	struct TRFC905DataHeader
 	{
-		TRFC905DataHeader(): lengthIndicator(0), PduCode(0) {}
+		TRFC905DataHeader(): lengthIndicator(0), pduCode(0) {}
 		quint8 lengthIndicator;
 		quint8 pduCode;
 	};
@@ -65,8 +68,8 @@ private:
 	quint32 readRFC905VariablePart(quint32 lengthIndicator, QVector<char>& tSel1, QVector<char>& tSel2);
 	quint32 readUserDataBlock(QVector<char>& tSel);
 
-	quint32 writeRFC1006Header();
-	quint32 writeRFC1006Header(quint32 size);
+	quint32 writeRFC1006ServiceHeader();
+	quint32 writeRFC1006DataHeader(quint32 size);
 	quint32 writeRFC905Header(quint8 lastCode);
 	quint32 writeRFC905Service(QVector<char>& tSel1, QVector<char>& tSel2, qint8 cdtCode);
 
@@ -162,6 +165,10 @@ public:
 	 * Will close the TCP connection if its still open and free any resources of this connection.
 	 */
 	void close();
+
+signals:
+
+	void connectionClosed(const CConnection* that);
 
 };
 

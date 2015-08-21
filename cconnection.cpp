@@ -29,6 +29,11 @@ m_pServerThread(pServerThread)
 
 	m_maxTPDUSize = CClientTSAP::getMaxTPDUSize(m_maxTPDUSizeParam);
 
+	s_mutexConCounter.lock();
+	c_connectionNum = s_connectionCounter;
+	s_connectionCounter++;
+	s_mutexConCounter.unlock();
+
 }
 
 void CConnection::setSelRemote(QVector<char>& tSelRemote)
@@ -105,7 +110,6 @@ quint32 CConnection::readUserDataBlock(QVector<char>& tSel)
 quint32 CConnection::readRFC905VariablePart(quint32 lengthIndicator, QVector<char>& tSel1, QVector<char>& tSel2)
 {
 	quint8 data8;
-	quint16 data16;
 
 	quint32 variableBytesRead = 0;
 	while (lengthIndicator > (6 + variableBytesRead))
@@ -157,7 +161,7 @@ quint32 CConnection::readRFC905VariablePart(quint32 lengthIndicator, QVector<cha
 	return variableBytesRead;
 }
 
-quint32 CConnection::writeRFC1006Header()
+quint32 CConnection::writeRFC1006ServiceHeader()
 {
 	quint16 data16;
 	quint32 variableLength=3;
@@ -173,7 +177,7 @@ quint32 CConnection::writeRFC1006Header()
 	return variableLength;
 }
 
-quint32 CConnection::writeRFC1006Header(quint32 size)
+quint32 CConnection::writeRFC1006DataHeader(quint32 size)
 {
 	quint16 data16;
 	quint32 variableLength=3;
@@ -243,14 +247,14 @@ void CConnection::listenForCR()
 	m_pSocket->waitForReadyRead(m_messageFragmentTimeout);
 
 	// Read Connect Request (CR)
-	quint16 packetLenght = readRFC1006Header();
+	readRFC1006Header();
 	TRFC905ServiceHeader hdr = readRFC905ServiceHeader(c_CRCDT, 0);
 	m_dstRef = hdr.srcRef;
 
 	readRFC905VariablePart(hdr.lengthIndicator, m_tSelLocal, m_tSelRemote);
 
 	// Write Connection Confirm (CC)
-	quint32 variableLength = writeRFC1006Header();
+	quint32 variableLength = writeRFC1006ServiceHeader();
 
 	variableLength += writeRFC905Service(m_tSelLocal, m_tSelRemote, c_CCCDT);
 
@@ -263,13 +267,15 @@ void CConnection::startConnection()
 	m_pSocket->waitForConnected(m_messageTimeout);
 
 	// Send connection request (CR)
-	qint32 variableLength = writeRFC1006Header();
+	qint32 variableLength = writeRFC1006ServiceHeader();
 
 	variableLength += writeRFC905Service(m_tSelRemote, m_tSelLocal, c_CRCDT);
 
 	// Read connection confirm (CC)
-	quint16 packetLength = readRFC1006Header();
+	readRFC1006Header();
 	TRFC905ServiceHeader shdr = readRFC905ServiceHeader(c_CCCDT, 0);
+	m_dstRef = shdr.srcRef;
+
 	readRFC905VariablePart(shdr.lengthIndicator, m_tSelRemote, m_tSelLocal);
 
 }
@@ -290,13 +296,13 @@ void CConnection::send(QLinkedList<QVector<char> > tsdus, QLinkedList<quint32> o
 	{
 		if (bytesLeft > maxTSDUSize)
 		{
-			writeRFC1006Header(maxTSDUSize);
+			writeRFC1006DataHeader(maxTSDUSize);
 			numBytesToWrite = maxTSDUSize;
 			writeRFC905Header(0x00);
 		}
 		else
 		{
-			writeRFC1006Header(bytesLeft);
+			writeRFC1006DataHeader(bytesLeft);
 			numBytesToWrite = bytesLeft;
 			writeRFC905Header(0x80);
 		}
@@ -454,7 +460,7 @@ void CConnection::receive(QByteArray& tSduBuffer)
 
 void CConnection::disconnect()
 {
-	quint32 length = writeRFC1006Header();
+	quint32 length = writeRFC1006ServiceHeader();
 	length = writeRFC905Header(length); // Disconnect Request - DR (ISO RFC-905 ISO DP 8073)
 
 	// write reason - 0x00 corresponds to reason not specified
@@ -467,8 +473,13 @@ void CConnection::disconnect()
 
 void CConnection::close()
 {
-	m_closed = true;
-	m_pSocket->close();
-	m_pIs->setStatus(QDataStream::WriteFailed);
+	if (!m_closed)
+	{
+		m_closed = true;
+		m_pSocket->close();
+		m_pIs->setStatus(QDataStream::WriteFailed);
+
+		emit connectionClosed(this);
+	}
 }
 

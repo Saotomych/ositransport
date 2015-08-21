@@ -6,4 +6,5 @@ CServerThread::CServerThread()
 
 CServerThread::CServerThread(const CServerThread& that)
 {
+	*this = that;
 }

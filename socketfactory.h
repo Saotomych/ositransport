@@ -19,8 +19,8 @@ class CSocketFactory
 {
 private:
 	CSocketFactory():connect_tout(30000){}
-	CSocketFactory(const CSocketFactory& that){}
-	CSocketFactory& operator=(const CSocketFactory& that){ return *this;}
+	CSocketFactory(const CSocketFactory& that){ *this = that; }
+	CSocketFactory& operator=(const CSocketFactory& that){ *this = that; return *this;}
 
 	static CSocketFactory* inst;
 
@@ -29,7 +29,7 @@ private:
 	int connect_tout;
 
 public:
-	static CSocketFactory* const GetSocketFactory()
+	static CSocketFactory* GetSocketFactory()
 	{
 		mut.lock();
 
