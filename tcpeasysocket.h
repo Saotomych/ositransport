@@ -25,9 +25,6 @@ private:
 	QHostAddress localHost;
 	qint16 localPort;
 
-	quint32 m_messageTimeout;
-	quint32 m_messageFragmentTimeout;
-
 public:
 	CTcpEasySocket();
 	CTcpEasySocket(const CTcpEasySocket& that);
@@ -39,9 +36,6 @@ public:
 	bool setLocalHostPort(QHostAddress localHost, qint16 localPort);
 	void connectToHost(QHostAddress host, qint16 port);
 	void connectToHost(QString host, qint16 port);
-
-	void setMessageTimeout(quint32 messageTimeout = TCP_EASY_SOCKET_DEFAULT_TIMEOUT);
-	void setMessageFragmentTimeout(quint32 messageFragmentTimeout = TCP_EASY_SOCKET_DEFAULT_TIMEOUT);
 
 };
 

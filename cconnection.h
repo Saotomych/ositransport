@@ -37,7 +37,6 @@ private:
 
 	explicit CConnection();
 	CConnection& operator=(const CConnection& that);
-	CConnection(const CConnection& that);
 
 	struct TRFC905ServiceHeader
 	{
@@ -78,6 +77,10 @@ public:
 
 	CConnection(CTcpEasySocket* socket, quint32 maxTPduSizeParam, qint32 m_messageTimeout,
 				qint32 m_messageFragmentTimeout, CServerThread* pServerThread);
+
+	CConnection(const CConnection& other);
+
+	virtual ~CConnection();
 
 	void setSelRemote(QVector<char>& tSelRemote);
 
@@ -169,7 +172,14 @@ public:
 
 signals:
 
-	void connectionClosed(const CConnection* that);
+	// work signals
+	void signalConnectionClosed(const CConnection* that);
+	void signalTSduReady(const CConnection* that);
+	void signalCRReady(const CConnection* that);
+	void signalConnectionReady(const CConnection* that);
+
+	// Error signals
+	void signalIOError(QString strErr);
 
 };
 

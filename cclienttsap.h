@@ -3,12 +3,14 @@
 
 #include "ositransport_global.h"
 #include "socketfactory.h"
-#include "exceptions.h"
 #include "cconnection.h"
 #include <cmath>
+#include <stdexcept>
 
-class OSITRANSPORTSHARED_EXPORT CClientTSAP
+class OSITRANSPORTSHARED_EXPORT CClientTSAP: public QObject
 {
+	Q_OBJECT
+
 private:
 	CSocketFactory* m_pSocketFactory;
 	quint32 m_messageTimeout;
@@ -74,7 +76,7 @@ public:
 	 * @param maxTPDUSizeParam
 	 *            the size parameter
 	 * @return the maximum TPDU size
-	 * @throws CExIllegalArgument
+	 * @throws CExIllegalArgument as std::exception
 	 *             is argument illegal
 	 */
 	static int getMaxTPDUSize(int maxTPDUSizeParam);
@@ -86,11 +88,9 @@ public:
 	 *            remote IP
 	 * @param port
 	 *            remote port
-	 * @return the Connection Object
-	 * @throws IOException
-	 *             is thrown if connection was unsuccessful.
+	 * @return the CConnection Object with signalConnectionReady
 	 */
-	QSharedPointer<CConnection> connectTo(QHostAddress address, quint16 port);
+	void connectTo(QHostAddress address, quint16 port);
 
 	/**
 	 * Connect to a remote TSAP that is listening at the destination address.
@@ -103,11 +103,9 @@ public:
 	 *            local IP
 	 * @param localPort
 	 *            local port
-	 * @return the Connection Object
-	 * @throws IOException
-	 *             is thrown if connection was unsuccessful.
+	 * @return the CConnection Object with signalConnectionReady
 	 */
-	QSharedPointer<CConnection> connectTo(QHostAddress address, quint16 port, QHostAddress localAddr, quint16 localPort);
+	void connectTo(QHostAddress address, quint16 port, QHostAddress localAddr, quint16 localPort);
 
 	/**
 	 * Set created socketFactory to Client
@@ -116,6 +114,17 @@ public:
 	 * 				created socket factory
 	 */
 	void setSocketFactory(CSocketFactory& socketFactory);
+
+signals:
+	// Work signals
+	void signalConnectionReady(CConnection that);
+
+	// Error signals
+	void signalIllegalArgument(QString strErr);
+	void signalConnectError(QString strErr);
+	void signalIllegalClassMember(QString strErr);
+
+
 };
 
 #endif // CCLIENTTSAP_H

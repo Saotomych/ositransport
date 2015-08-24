@@ -1,5 +1,4 @@
 #include "cconnection.h"
-#include "exceptions.h"
 #include "cclienttsap.h"
 
 qint32 CConnection::s_connectionCounter = 0;
@@ -36,6 +35,36 @@ m_pServerThread(pServerThread)
 
 }
 
+CConnection::CConnection(const CConnection& other):  QObject(), c_CRCDT(0xe0), c_CCCDT(0xd0)
+{
+	c_connectionNum = other.c_connectionNum;
+    m_pSocket = other.m_pSocket;
+
+    m_tSelRemote = other.m_tSelRemote;
+	m_tSelLocal = other.m_tSelLocal;
+
+	m_srcRef = other.m_srcRef;
+	m_dstRef = other.m_dstRef;
+	m_maxTPDUSizeParam = other.m_maxTPDUSizeParam;
+	m_maxTPDUSize = other.m_maxTPDUSize;
+	m_messageTimeout = other.m_messageTimeout;
+	m_messageFragmentTimeout = other.m_messageFragmentTimeout;
+	m_closed = other.m_closed;
+	m_pServerThread = other.m_pServerThread;
+
+	QScopedPointer<QDataStream> os(other.m_pOs.data());
+	m_pOs.swap(os);
+
+	QScopedPointer<QDataStream> is(other.m_pIs.data());
+	m_pIs.swap(is);
+}
+
+CConnection::~CConnection()
+{
+	// Pointers class members created no class
+	// so that destructor and copy constructor are public
+}
+
 void CConnection::setSelRemote(QVector<char>& tSelRemote)
 {
 	m_tSelRemote = tSelRemote;
@@ -52,10 +81,10 @@ quint16 CConnection::readRFC1006Header()
 	quint16 data16 = 0;
 
 	*m_pIs >> data8;
-	if (data8 != 0x03) throw OSIExceptions::CExIOError("Error: RFC 1006 version failed!");
+	if (data8 != 0x03) { emit signalIOError("Error: RFC 1006 version failed!"); return 0; }
 
 	*m_pIs >> data8;
-	if (data8 != 0x00) throw OSIExceptions::CExIOError("Error: RFC 1006 reserved byte failed!");
+	if (data8 != 0x00) { emit signalIOError("Error: RFC 1006 reserved byte failed!");  return 0; }
 
 	// read packet length
 	*m_pIs >> data16;
@@ -66,19 +95,20 @@ quint16 CConnection::readRFC1006Header()
 CConnection::TRFC905ServiceHeader CConnection::readRFC905ServiceHeader(qint8 cdtCode, quint8 readOption)
 {
 	TRFC905ServiceHeader hdr;
+	TRFC905ServiceHeader hdrnull;
 
 	*m_pIs >> hdr.lengthIndicator;
-	if (hdr.lengthIndicator != 6) throw OSIExceptions::CExIOError("Error: RFC 905 length indicator not equal 6!");
+	if (hdr.lengthIndicator != 6) { emit signalIOError("Error: RFC 905 length indicator not equal 6!"); return hdrnull; }
 
 	*m_pIs >> hdr.CRCDT;
-	if (hdr.CRCDT != cdtCode)  throw OSIExceptions::CExIOError("Error: RFC 905 CR-code failed!");
+	if (hdr.CRCDT != cdtCode) { emit signalIOError("Error: RFC 905 CR-code failed!");  return hdrnull; }
 
 	*m_pIs >> hdr.dstRef;
 	*m_pIs >> hdr.srcRef;
 
 	// Read class
 	*m_pIs >> hdr.option;
-	if (hdr.option != readOption)  throw OSIExceptions::CExIOError("Error: Read option RFC905 failed!");
+	if (hdr.option != readOption) { emit signalIOError("Error: Read option RFC905 failed!"); return hdrnull; }
 
 	return hdr;
 }
@@ -86,9 +116,10 @@ CConnection::TRFC905ServiceHeader CConnection::readRFC905ServiceHeader(qint8 cdt
 CConnection::TRFC905DataHeader CConnection::readRFC905DataHeader()
 {
 	TRFC905DataHeader hdr;
+	TRFC905DataHeader hdrnull;
 
 	*m_pIs >> hdr.lengthIndicator;
-	if (hdr.lengthIndicator != 2) throw OSIExceptions::CExIOError("Error: RFC 905 length indicator not equal 2!");
+	if (hdr.lengthIndicator != 2) { emit signalIOError("Error: RFC 905 length indicator not equal 2!"); return hdrnull; }
 
 	*m_pIs >> hdr.pduCode;
 
@@ -107,12 +138,12 @@ quint32 CConnection::readUserDataBlock(QVector<char>& tSel)
 	}
 	else
 	{
-		if (parameterLength != tSel.size()) throw OSIExceptions::CExIOError("Error: Local T-Selector is wrong!");
+		if (parameterLength != tSel.size()) { emit signalIOError("Error: Local T-Selector is wrong!"); return 0; }
 
 		for (qint32 i = 0; i < parameterLength; ++i)
 		{
 			*m_pIs >> data8;
-			if (data8 != tSel[i]) throw OSIExceptions::CExIOError("Error: Local T-Selector is wrong!");
+			if (data8 != tSel[i]) { emit signalIOError("Error: Local T-Selector is wrong!"); return 0; }
 		}
 
 	}
@@ -133,26 +164,30 @@ quint32 CConnection::readRFC905VariablePart(quint32 lengthIndicator, QVector<cha
 		{
 		case 0xC2:
 			{
-				variableBytesRead += 2 + readUserDataBlock(tSel1);
+				quint32 len = readUserDataBlock(tSel1);
+				if (!len) return 0;
+				variableBytesRead += 2 + len;
 			}
 			break;
 
 		case 0xC1:
 			{
-				variableBytesRead += 2 + readUserDataBlock(tSel2);
+				quint32 len = readUserDataBlock(tSel2);
+				if (!len) return 0;
+				variableBytesRead += 2 + len;
 			}
 			break;
 		case 0xC0:
 			{
 				*m_pIs >> data8;
-				if (data8 != 1)
-					throw OSIExceptions::CExIOError("Error: CConnection::listenForCR: case 0xC0!");
+				if (data8 != 1) { emit signalIOError("Error: CConnection::listenForCR: case 0xC0!"); return 0; }
 
 				*m_pIs >> data8;
 				quint8 newMaxTPDUSizeParam = data8;
 				if (newMaxTPDUSizeParam < 7 || newMaxTPDUSizeParam > 16)
 				{
-					throw OSIExceptions::CExIOError("Error: newMaxTPDUSizeParam is out of bound!");
+					emit signalIOError("Error: newMaxTPDUSizeParam is out of bound!");
+					return 0;
 				}
 				else
 				{
@@ -167,7 +202,8 @@ quint32 CConnection::readRFC905VariablePart(quint32 lengthIndicator, QVector<cha
 			break;
 
 		default:
-			throw OSIExceptions::CExIOError("Error: CConnection::listenForCR: Unknown case!");
+			emit signalIOError("Error: CConnection::listenForCR: Unknown case!");
+			return 0;
 		}
 	}
 
@@ -265,11 +301,13 @@ void CConnection::listenForCR()
 	m_pSocket->waitForReadyRead(m_messageFragmentTimeout);
 
 	// Read Connect Request (CR)
-	readRFC1006Header();
+	if (!readRFC1006Header()) return;
+
 	TRFC905ServiceHeader hdr = readRFC905ServiceHeader(c_CRCDT, 0);
+	if (!hdr.lengthIndicator) return;
 	m_dstRef = hdr.srcRef;
 
-	readRFC905VariablePart(hdr.lengthIndicator, m_tSelLocal, m_tSelRemote);
+	if (!readRFC905VariablePart(hdr.lengthIndicator, m_tSelLocal, m_tSelRemote)) return;
 
 	// Write Connection Confirm (CC)
 	writeRFC1006ServiceHeader(3);
@@ -278,6 +316,7 @@ void CConnection::listenForCR()
 
 	m_pSocket->flush();
 
+	emit signalCRReady(this);
 }
 
 void CConnection::startConnection()
@@ -290,11 +329,14 @@ void CConnection::startConnection()
 	writeRFC905Service(m_tSelRemote, m_tSelLocal);
 
 	// Read connection confirm (CC)
-	readRFC1006Header();
+	if (!readRFC1006Header()) return;
 	TRFC905ServiceHeader shdr = readRFC905ServiceHeader(c_CCCDT, 0);
+	if (!shdr.lengthIndicator) return;
 	m_dstRef = shdr.srcRef;
 
-	readRFC905VariablePart(shdr.lengthIndicator, m_tSelRemote, m_tSelLocal);
+	if (!readRFC905VariablePart(shdr.lengthIndicator, m_tSelRemote, m_tSelLocal)) return;
+
+	emit signalConnectionReady(this);
 
 }
 
@@ -419,57 +461,64 @@ void CConnection::receive(QByteArray& tSduBuffer)
 
 	TRFC905DataHeader hdr;
 
-	if (m_pSocket->waitForReadyRead(m_messageTimeout) == false) throw OSIExceptions::CExIOError("Error: Received no data.");
+	if (m_pSocket->waitForReadyRead(m_messageTimeout) == false) emit signalIOError("Error: Received no data.");
 
 	do
 	{
 		packetLength = readRFC1006Header();
-		if (packetLength <= 7) throw OSIExceptions::CExIOError("Syntax error: packet length parameter < 7.");
+		if (packetLength <= 7) { emit signalIOError("Syntax error: receive packet length parameter < 7."); return; }
 
 		hdr = readRFC905DataHeader();
+		if (!hdr.lengthIndicator) { emit signalIOError("Syntax error: receive length indicator parameter wrong."); return; }
 
 		eot = 0;
 		if (hdr.pduCode == 0xF0)
 		{
 			*m_pIs >> eot;
-			if ( eot != 0 && eot != 0x80 ) throw OSIExceptions::CExIOError("Syntax Error: EOT wrong");
+			if ( eot != 0 && eot != 0x80 ) { emit signalIOError("Syntax Error: EOT wrong"); return; }
 
 			if ( (quint64)(packetLength - 7) > (tSduBuffer.MaxSize - tSduBuffer.size()))
-				throw OSIExceptions::CExIOError("tSduBuffer size is too small to hold the complete TSDU");
+			{
+				emit signalIOError("tSduBuffer size is too small to hold the complete TSDU");
+				return;
+			}
 
 			tSduBuffer += m_pSocket->readAll();
 
 		}
 		else if (hdr.pduCode == 0x80) // Disconnect Request - DR (ISO RFC-905 ISO DP 8073)
 		{
-			if (hdr.lengthIndicator != 6) throw OSIExceptions::CExIOError("Syntax error: LI field does not equal 6.");
+			if (hdr.lengthIndicator != 6) { emit signalIOError("Syntax error: LI field does not equal 6."); return; }
 
 			*m_pIs >> data16;	// Read DST-REF (Source Reference here)
-			if (data16 != m_srcRef) throw OSIExceptions::CExIOError("Syntax error: Source reference wrong.");
+			if (data16 != m_srcRef) { emit signalIOError("Syntax error: Source reference wrong."); return; }
 
 			*m_pIs >> data16;	// Read SRC-REF (Destination Reference here)
-			if (data16 != m_dstRef) throw OSIExceptions::CExIOError("Syntax error: Destination reference wrong.");
+			if (data16 != m_dstRef) { emit signalIOError("Syntax error: Destination reference wrong."); return; }
 
 			// check the reason field only between 1 and 4 for class 0
 			reason = 0;
 			*m_pIs >> reason;
-			if (reason < 0 || reason > 4) throw OSIExceptions::CExIOError("Syntax error: reason out of bound.");
+			if (reason < 0 || reason > 4) { emit signalIOError("Syntax error: reason out of bound."); return; }
 
 			// Disconnect is valid
 			return;
 		}
 		else if (hdr.pduCode == 0x70) // Error Message - ER (ISO RFC-905 ISO DP 8073)
 		{
-			throw OSIExceptions::CExIOError("Got TPDU Error: ER message.");
+			emit signalIOError("Got TPDU Error: ER message.");
+			return;
 		}
 		else
 		{
-			throw OSIExceptions::CExIOError("Syntax Error: unknown TPDU code.");
+			emit signalIOError("Syntax Error: unknown TPDU code.");
+			return;
 		}
 
 	}while ( eot != 0x80 || (m_pSocket->waitForReadyRead(m_messageFragmentTimeout) == true) );
 
-	if (!eot)  throw OSIExceptions::CExIOError("Error: Received fragment error.");
+	if (!eot)  emit signalIOError("Error: Received last eot error.");
+	else emit signalTSduReady(this);
 
 }
 
@@ -491,7 +540,7 @@ void CConnection::close()
 		m_pSocket->close();
 		m_pIs->setStatus(QDataStream::WriteFailed);
 
-		emit connectionClosed(this);
+		emit signalConnectionClosed(this);
 	}
 }
 

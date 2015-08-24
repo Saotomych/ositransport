@@ -13,9 +13,7 @@ CTcpEasySocket::CTcpEasySocket():
 		host((unsigned int)0),
 		port(0),
 		localHost((unsigned int)0),
-		localPort(0),
-		m_messageTimeout(c_DefaultTimeout),
-		m_messageFragmentTimeout(c_DefaultTimeout)
+		localPort(0)
 {
 }
 
@@ -27,8 +25,6 @@ CTcpEasySocket::CTcpEasySocket(const CTcpEasySocket& that):
 	port = that.port;
 	localHost = that.localHost;
 	localPort = that.localPort;
-	m_messageTimeout = that.m_messageTimeout;
-	m_messageFragmentTimeout = that.m_messageFragmentTimeout;
 }
 
 CTcpEasySocket CTcpEasySocket::operator=(const CTcpEasySocket& that)
@@ -38,8 +34,6 @@ CTcpEasySocket CTcpEasySocket::operator=(const CTcpEasySocket& that)
 	port = that.port;
 	localHost = that.localHost;
 	localPort = that.localPort;
-	m_messageTimeout = that.m_messageTimeout;
-	m_messageFragmentTimeout = that.m_messageFragmentTimeout;
 
 	return *this;
 }
@@ -88,9 +82,4 @@ void CTcpEasySocket::connectToHost(QString strhost, qint16 port)
 	this->host = 0;
 	this->port = port;
 	QTcpSocket::connectToHost(host, port);
-}
-
-void CTcpEasySocket::setMessageTimeout(quint32 messageTimeout = c_DefaultTimeout)
-{
-	m_messageTimeout = messageTimeout;
 }
