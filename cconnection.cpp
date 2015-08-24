@@ -68,9 +68,10 @@ CConnection::TRFC905ServiceHeader CConnection::readRFC905ServiceHeader(qint8 cdt
 	TRFC905ServiceHeader hdr;
 
 	*m_pIs >> hdr.lengthIndicator;
+	if (hdr.lengthIndicator != 6) throw OSIExceptions::CExIOError("Error: RFC 905 length indicator not equal 6!");
 
 	*m_pIs >> hdr.CRCDT;
-	if (hdr.CRCDT != cdtCode)  throw OSIExceptions::CExIOError("Error: RFC 1006 CR-code failed!");
+	if (hdr.CRCDT != cdtCode)  throw OSIExceptions::CExIOError("Error: RFC 905 CR-code failed!");
 
 	*m_pIs >> hdr.dstRef;
 	*m_pIs >> hdr.srcRef;
@@ -78,6 +79,18 @@ CConnection::TRFC905ServiceHeader CConnection::readRFC905ServiceHeader(qint8 cdt
 	// Read class
 	*m_pIs >> hdr.option;
 	if (hdr.option != readOption)  throw OSIExceptions::CExIOError("Error: Read option RFC905 failed!");
+
+	return hdr;
+}
+
+CConnection::TRFC905DataHeader CConnection::readRFC905DataHeader()
+{
+	TRFC905DataHeader hdr;
+
+	*m_pIs >> hdr.lengthIndicator;
+	if (hdr.lengthIndicator != 2) throw OSIExceptions::CExIOError("Error: RFC 905 length indicator not equal 2!");
+
+	*m_pIs >> hdr.pduCode;
 
 	return hdr;
 }
@@ -161,10 +174,10 @@ quint32 CConnection::readRFC905VariablePart(quint32 lengthIndicator, QVector<cha
 	return variableBytesRead;
 }
 
-quint32 CConnection::writeRFC1006ServiceHeader()
+quint32 CConnection::writeRFC1006ServiceHeader(quint32 beginSize)
 {
 	quint16 data16;
-	quint32 variableLength=3;
+	quint32 variableLength = beginSize;
 
 	*m_pOs << (char)0x03 << (char)0x00;
 
@@ -192,32 +205,37 @@ quint32 CConnection::writeRFC1006DataHeader(quint32 size)
 	return variableLength;
 }
 
-quint32 CConnection::writeRFC905Header(quint8 lastCode)
+quint32 CConnection::writeRFC905DataHeader(quint8 opCode)
 {
-	*m_pOs << (char)0x02 << (char)0xf0 << lastCode;
+	*m_pOs << (char)0x02 << (char)0xf0 << opCode;
 
 	return 3;
 }
 
-quint32 CConnection::writeRFC905Service(QVector<char>& tSel1, QVector<char>& tSel2, qint8 cdtCode)
+quint32 CConnection::writeRFC905ServiceHeader(quint8 opCode)
 {
 	quint16 data16;
-	quint32 variableLength=0;
+	quint8 serviceHdrSize = 6;
 
 	// write length indicator
-	data16 = 6 +  variableLength;
-	*m_pOs << data16;
+	*m_pOs << serviceHdrSize;
 
 	// write fixed part
-	// CC CDT
-	*m_pOs << cdtCode;
+	*m_pOs << opCode;
 
 	data16 = m_dstRef;
 	*m_pOs << data16;
 	data16 = m_srcRef;
 	*m_pOs << data16;
+
+	// write reason - 0x00 corresponds to reason not specified
 	*m_pOs << (char) 0;
 
+	return serviceHdrSize;
+}
+
+quint32 CConnection::writeRFC905Service(QVector<char>& tSel1, QVector<char>& tSel2)
+{
 	// write variable part
 	if (!tSel1.isEmpty())
 	{
@@ -238,7 +256,7 @@ quint32 CConnection::writeRFC905Service(QVector<char>& tSel1, QVector<char>& tSe
 	*m_pOs << (char) 1;
 	*m_pOs << m_maxTPDUSizeParam;
 
-	return variableLength;
+	return 0;
 }
 
 void CConnection::listenForCR()
@@ -254,9 +272,9 @@ void CConnection::listenForCR()
 	readRFC905VariablePart(hdr.lengthIndicator, m_tSelLocal, m_tSelRemote);
 
 	// Write Connection Confirm (CC)
-	quint32 variableLength = writeRFC1006ServiceHeader();
-
-	variableLength += writeRFC905Service(m_tSelLocal, m_tSelRemote, c_CCCDT);
+	writeRFC1006ServiceHeader(3);
+	writeRFC905ServiceHeader(c_CCCDT);
+	writeRFC905Service(m_tSelLocal, m_tSelRemote);
 
 	m_pSocket->flush();
 
@@ -267,9 +285,9 @@ void CConnection::startConnection()
 	m_pSocket->waitForConnected(m_messageTimeout);
 
 	// Send connection request (CR)
-	qint32 variableLength = writeRFC1006ServiceHeader();
-
-	variableLength += writeRFC905Service(m_tSelRemote, m_tSelLocal, c_CRCDT);
+	writeRFC1006ServiceHeader(3);
+	writeRFC905ServiceHeader(c_CRCDT);
+	writeRFC905Service(m_tSelRemote, m_tSelLocal);
 
 	// Read connection confirm (CC)
 	readRFC1006Header();
@@ -298,13 +316,13 @@ void CConnection::send(QLinkedList<QVector<char> > tsdus, QLinkedList<quint32> o
 		{
 			writeRFC1006DataHeader(maxTSDUSize);
 			numBytesToWrite = maxTSDUSize;
-			writeRFC905Header(0x00);
+			writeRFC905DataHeader(0x00);
 		}
 		else
 		{
 			writeRFC1006DataHeader(bytesLeft);
 			numBytesToWrite = bytesLeft;
-			writeRFC905Header(0x80);
+			writeRFC905DataHeader(0x80);
 		}
 
 		bytesLeft -= numBytesToWrite;
@@ -403,9 +421,6 @@ void CConnection::receive(QByteArray& tSduBuffer)
 
 	if (m_pSocket->waitForReadyRead(m_messageTimeout) == false) throw OSIExceptions::CExIOError("Error: Received no data.");
 
-	quint8 version = 0;
-	*m_pIs >> version;
-
 	do
 	{
 		packetLength = readRFC1006Header();
@@ -413,11 +428,9 @@ void CConnection::receive(QByteArray& tSduBuffer)
 
 		hdr = readRFC905DataHeader();
 
+		eot = 0;
 		if (hdr.pduCode == 0xF0)
 		{
-			if (hdr.lengthIndicator != 2) throw OSIExceptions::CExIOError("Syntax error: LI field does not equal 2.");
-
-			eot = 0;
 			*m_pIs >> eot;
 			if ( eot != 0 && eot != 0x80 ) throw OSIExceptions::CExIOError("Syntax Error: EOT wrong");
 
@@ -454,17 +467,16 @@ void CConnection::receive(QByteArray& tSduBuffer)
 			throw OSIExceptions::CExIOError("Syntax Error: unknown TPDU code.");
 		}
 
-	}while ( eot != 0x80 && (m_pSocket->waitForReadyRead(m_messageFragmentTimeout) == true) );
+	}while ( eot != 0x80 || (m_pSocket->waitForReadyRead(m_messageFragmentTimeout) == true) );
+
+	if (!eot)  throw OSIExceptions::CExIOError("Error: Received fragment error.");
 
 }
 
 void CConnection::disconnect()
 {
-	quint32 length = writeRFC1006ServiceHeader();
-	length = writeRFC905Header(length); // Disconnect Request - DR (ISO RFC-905 ISO DP 8073)
-
-	// write reason - 0x00 corresponds to reason not specified
-	*m_pOs << 0x00;
+	writeRFC1006ServiceHeader(0);
+	writeRFC905ServiceHeader(0x80); // Disconnect Request - DR (ISO RFC-905 ISO DP 8073)
 
 	m_pSocket->flush();
 

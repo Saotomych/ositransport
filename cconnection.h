@@ -68,10 +68,11 @@ private:
 	quint32 readRFC905VariablePart(quint32 lengthIndicator, QVector<char>& tSel1, QVector<char>& tSel2);
 	quint32 readUserDataBlock(QVector<char>& tSel);
 
-	quint32 writeRFC1006ServiceHeader();
+	quint32 writeRFC1006ServiceHeader(quint32 beginSize);
 	quint32 writeRFC1006DataHeader(quint32 size);
-	quint32 writeRFC905Header(quint8 lastCode);
-	quint32 writeRFC905Service(QVector<char>& tSel1, QVector<char>& tSel2, qint8 cdtCode);
+	quint32 writeRFC905DataHeader(quint8 cdtCode);
+	quint32 writeRFC905ServiceHeader(quint8 cdtCode);
+	quint32 writeRFC905Service(QVector<char>& tSel1, QVector<char>& tSel2);
 
 public:
 
