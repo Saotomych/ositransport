@@ -1,4 +1,5 @@
 #include "cclienttsap.h"
+#include "cconnection.h"
 
 CClientTSAP::CClientTSAP():
 		m_pSocketFactory(nullptr),
@@ -71,7 +72,7 @@ void CClientTSAP::connectTo(QHostAddress address, quint16 port, QHostAddress loc
 	else
 		socket = m_pSocketFactory->CreateSocket(address, port, localAddr, localPort);
 
-	CConnection connection(&socket, m_maxTPDUSizeParam, m_messageTimeout, m_messageFragmentTimeout, nullptr);
+	CConnection connection(&socket, m_maxTPDUSizeParam, m_messageTimeout, m_messageFragmentTimeout);
 	connection.setSelRemote(m_tSelRemote);
 	connection.setSelLocal(m_tSelLocal);
 	connection.startConnection();

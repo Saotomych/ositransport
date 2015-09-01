@@ -3,7 +3,6 @@
 
 #include "ositransport_global.h"
 #include "tcpeasysocket.h"
-#include "serverthread.h"
 
 class OSITRANSPORTSHARED_EXPORT CConnection: public QObject
 {
@@ -30,7 +29,6 @@ private:
 	qint32 m_messageTimeout;
 	qint32 m_messageFragmentTimeout;
 	bool m_closed;
-	CServerThread* m_pServerThread;
 
 	QScopedPointer<QDataStream> m_pOs;
 	QScopedPointer<QDataStream> m_pIs;
@@ -76,7 +74,7 @@ private:
 public:
 
 	CConnection(CTcpEasySocket* socket, quint32 maxTPduSizeParam, qint32 m_messageTimeout,
-				qint32 m_messageFragmentTimeout, CServerThread* pServerThread);
+				qint32 m_messageFragmentTimeout);
 
 	CConnection(const CConnection& other);
 

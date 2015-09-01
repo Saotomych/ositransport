@@ -6,8 +6,7 @@ qint32 CConnection::s_connectionCounter = 0;
 CConnection::CConnection(CTcpEasySocket* socket,
 						quint32 maxTPduSizeParam,
 						qint32 messageTimeout,
-						qint32 messageFragmentTimeout,
-						CServerThread* pServerThread):
+						qint32 messageFragmentTimeout):
 c_CRCDT(0xe0),
 c_CCCDT(0xd0),
 m_pSocket(socket),
@@ -17,8 +16,7 @@ m_maxTPDUSizeParam(maxTPduSizeParam),
 m_maxTPDUSize(0),
 m_messageTimeout(messageTimeout),
 m_messageFragmentTimeout(messageFragmentTimeout),
-m_closed(true),
-m_pServerThread(pServerThread)
+m_closed(true)
 {
 	QScopedPointer<QDataStream> os(new QDataStream(socket));
 	m_pOs.swap(os);
@@ -50,7 +48,6 @@ CConnection::CConnection(const CConnection& other):  QObject(), c_CRCDT(0xe0), c
 	m_messageTimeout = other.m_messageTimeout;
 	m_messageFragmentTimeout = other.m_messageFragmentTimeout;
 	m_closed = other.m_closed;
-	m_pServerThread = other.m_pServerThread;
 
 	QScopedPointer<QDataStream> os(other.m_pOs.data());
 	m_pOs.swap(os);
@@ -295,6 +292,7 @@ quint32 CConnection::writeRFC905Service(QVector<char>& tSel1, QVector<char>& tSe
 	return 0;
 }
 
+// Emit for Errors occurs into private functions
 void CConnection::listenForCR()
 {
 
@@ -319,9 +317,10 @@ void CConnection::listenForCR()
 	emit signalCRReady(this);
 }
 
+// Emit for Errors occurs into private functions
 void CConnection::startConnection()
 {
-	m_pSocket->waitForConnected(m_messageTimeout);
+	if (!m_pSocket->waitForConnected(m_messageTimeout)) return;
 
 	// Send connection request (CR)
 	writeRFC1006ServiceHeader(3);
@@ -340,6 +339,7 @@ void CConnection::startConnection()
 
 }
 
+// Emit for Errors occurs into private functions
 void CConnection::send(QLinkedList<QVector<char> > tsdus, QLinkedList<quint32> offsets, QLinkedList<quint32> lengths)
 {
 
@@ -418,6 +418,7 @@ void CConnection::send(QLinkedList<QVector<char> > tsdus, QLinkedList<quint32> o
 
 }
 
+// Emit for Errors occurs into private functions
 void CConnection::send(QVector<char> tsdu, quint32 offset, quint32 length)
 {
 	QLinkedList<QVector<char> > tsdus;
@@ -451,6 +452,7 @@ void CConnection::setMessageFragmentTimeout(int messageFragmentTimeout) {
 	m_messageFragmentTimeout = messageFragmentTimeout;
 }
 
+// Emit for Errors may occur into private functions
 void CConnection::receive(QByteArray& tSduBuffer)
 {
 
@@ -469,7 +471,7 @@ void CConnection::receive(QByteArray& tSduBuffer)
 		if (packetLength <= 7) { emit signalIOError("Syntax error: receive packet length parameter < 7."); return; }
 
 		hdr = readRFC905DataHeader();
-		if (!hdr.lengthIndicator) { emit signalIOError("Syntax error: receive length indicator parameter wrong."); return; }
+		if (!hdr.lengthIndicator) return;
 
 		eot = 0;
 		if (hdr.pduCode == 0xF0)
