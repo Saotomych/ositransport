@@ -1,8 +1,8 @@
 #include "serverthread.h"
 
-quint32 CServerThreadPool::s_socketCounter = 0;
+quint32 CServerThread::s_socketCounter = 0;
 
-CServerThreadPool::	CServerThreadPool(
+CServerThread::	CServerThread(
 		CTcpEasySocket* sock,
 		quint32 maxTPduSizeParam,
 		quint32 msgTimeout,
@@ -18,15 +18,13 @@ CServerThreadPool::	CServerThreadPool(
 {
 }
 
-CConnection* CServerThreadPool::createNewConnection()
+CConnection* CServerThread::createNewConnection()
 {
 	try
 	{
 		CConnection* pconn = new CConnection(m_pTcpSocket, m_maxTPduSizeParam, m_messageTimeout, m_messageFragmentTimeout);
 		QObject::connect(pconn, SIGNAL(signalIOError), this, SLOT(slotConnectionClosed));
 		QObject::connect(pconn, SIGNAL(signalCRReady), this, SLOT(slotConnectionReady));
-
-		m_setConnection.insert(pconn);
 
 		return pconn;
 	}
@@ -38,13 +36,18 @@ CConnection* CServerThreadPool::createNewConnection()
 	}
 }
 
-void CServerThreadPool::startConnectionThread(CConnection* pconn)
+void CServerThread::startServer()
+{
+	startConnectionThread(createNewConnection());
+}
+
+void CServerThread::startConnectionThread(CConnection* pconn)
 {
 	if (s_socketCounter < getMaxConnections())
 	{
 		try
 		{
-			CServerThreadPool::CConnectionThread* pst = new CServerThreadPool::CConnectionThread(pconn);
+			CServerThread::CConnectionThread* pst = new CServerThread::CConnectionThread(pconn);
 			pst->setAutoDelete(true);
 			if (addThread2ServerPool(pst)) s_socketCounter++;
 		}
@@ -56,12 +59,12 @@ void CServerThreadPool::startConnectionThread(CConnection* pconn)
 	}
 }
 
-void CServerThreadPool::CConnectionThread::run()
+void CServerThread::CConnectionThread::run()
 {
 	m_pConnection->listenForCR();
 }
 
-void CServerThreadPool::slotConnectionClosed(const CConnection* that)
+void CServerThread::slotConnectionClosed(const CConnection* that)
 {
 	Q_CHECK_PTR(that);
 
@@ -69,7 +72,6 @@ void CServerThreadPool::slotConnectionClosed(const CConnection* that)
 	{
 		s_socketCounter--;
 
-		m_setConnection.remove(const_cast<CConnection*>(that));
 		delete that;
 
 		emit signalUserDisconnected();
@@ -78,34 +80,34 @@ void CServerThreadPool::slotConnectionClosed(const CConnection* that)
 	}
 }
 
-void CServerThreadPool::slotConnectionReady(const CConnection* that)
+void CServerThread::slotConnectionReady(const CConnection* that)
 {
 	Q_CHECK_PTR(that);
-	signalUserConnected();
+	emit signalUserConnected();
 }
 
-void CServerThreadPool::slotTryNewConnection(const CConnection* that)
+void CServerThread::slotTryNewConnection(const CConnection* that)
 {
 
 }
 
-quint32 CServerThreadPool::getMaxConnections()
+quint32 CServerThread::getMaxConnections()
 {
 	return m_maxConnections;
 }
 
-void CServerThreadPool::setMaxConnections(quint32 maxConnections)
+void CServerThread::setMaxConnections(quint32 maxConnections)
 {
 	m_maxConnections = maxConnections;
 }
 
-bool CServerThreadPool::addThread2ServerPool(QRunnable* obj)
+bool CServerThread::addThread2ServerPool(QRunnable* obj)
 {
 	Q_CHECK_PTR(obj);
 	return m_srvThreadPool.tryStart(obj);
 }
 
-void CServerThreadPool::stopServer()
+void CServerThread::stopServer()
 {
 	m_srvThreadPool.clear();
 	m_srvThreadPool.waitForDone();

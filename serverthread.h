@@ -5,7 +5,7 @@
 #include "cconnection.h"
 #include "cconnectionlistener.h"
 
-class CServerThreadPool: public QObject
+class CServerThread: public QObject
 {
 
 	Q_OBJECT
@@ -24,8 +24,6 @@ private:
 
 	QThreadPool m_srvThreadPool;
 
-	QSet<CConnection*> m_setConnection;
-
 	class CConnectionThread: public QRunnable
 	{
 		CConnection* m_pConnection;
@@ -36,13 +34,13 @@ private:
 		void run();
 	};
 
-	explicit CServerThreadPool();
+	explicit CServerThread();
 
 public:
 
-	Q_DISABLE_COPY(CServerThreadPool);
+	Q_DISABLE_COPY(CServerThread);
 
-	CServerThreadPool(
+	CServerThread(
 			CTcpEasySocket* sock,
 			quint32 maxTPduSizeParam,
 			quint32 msgTimeout,
@@ -57,6 +55,7 @@ public:
     void setMaxConnections(quint32 maxConnections);
     bool addThread2ServerPool(QRunnable* obj);
 
+    void startServer();
     void stopServer();
 
 private slots:

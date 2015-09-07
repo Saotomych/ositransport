@@ -4,6 +4,7 @@
 #include "ositransport_global.h"
 #include "cconnectionlistener.h"
 #include "socketfactory.h"
+#include "serverthread.h"
 
 class OSITRANSPORTSHARED_EXPORT CServerTSAP : public QObject
 {
@@ -12,8 +13,9 @@ class OSITRANSPORTSHARED_EXPORT CServerTSAP : public QObject
 	qint32 localPort;
 	qint32 backlog;
 	QHostAddress bindAddr;
-	CConnectionListener conListener;
 	CSocketFactory serverSocketFactory;
+	CConnectionListener* conListener;
+	CServerThread* serverThread;
 
     explicit CServerTSAP(QObject *parent = 0);
 
@@ -25,11 +27,8 @@ public:
 	 * @param port
 	 *            the TCP port that the ServerSocket will connect to. Should be
 	 *            between 1 and 65535.
-	 * @param conListener
-	 *            the ConnectionListener that will be notified when remote TSAPs
-	 *            are connecting or the server stopped listening.
 	 */
-	CServerTSAP(qint32 port, CConnectionListener conListener);
+	CServerTSAP(qint32 port);
 
 	/**
 	 * Use this constructor to create a server TSAP that can listen on a port.
@@ -37,16 +36,13 @@ public:
 	 * @param port
 	 *            the TCP port that the ServerSocket will connect to. Should be
 	 *            between 1 and 65535.
-	 * @param conListener
-	 *            the ConnectionListener that will be notified when remote TSAPs
-	 *            are connecting or the server stopped listening.
 	 * @param backlog
 	 *            is passed to the java.net.ServerSocket
 	 * @param bindAddr
 	 *            the IP address to bind to. It is passed to
 	 *            java.net.ServerSocket
 	 */
-	CServerTSAP(qint32 port, qint32 backlog, QHostAddress bindAddr, CConnectionListener conListener);
+	CServerTSAP(qint32 port, qint32 backlog, QHostAddress bindAddr);
 
 	/**
 	 * Use this constructor to create a server TSAP that can listen on a port,
@@ -55,9 +51,6 @@ public:
 	 * @param port
 	 *            the TCP port that the ServerSocket will connect to. Should be
 	 *            between 1 and 65535.
-	 * @param conListener
-	 *            the ConnectionListener that will be notified when remote TSAPs
-	 *            are connecting or the server stopped listening.
 	 * @param backlog
 	 *            is passed to the java.net.ServerSocket
 	 * @param bindAddr
@@ -66,7 +59,7 @@ public:
 	 * @param serverSocketFactory
 	 *            The ServerSocketFactory to be used to create the ServerSocket
 	 */
-	CServerTSAP(qint32 port, qint32 backlog, QHostAddress bindAddr, CConnectionListener conListener, CSocketFactory serverSocketFactory);
+	CServerTSAP(qint32 port, qint32 backlog, QHostAddress bindAddr, CSocketFactory serverSocketFactory);
 
 	/**
 	 * Starts a new thread that listens on the configured port. This method is
@@ -74,7 +67,7 @@ public:
 	 *
 	 * @throws IOException
 	 */
-	void startListening();
+	CConnectionListener& startListening();
 
 	/**
 	 * Stop listing on the port. Stops the server thread.

@@ -171,10 +171,10 @@ public:
 signals:
 
 	// work signals
+	void signalConnectionReady(const CConnection* that);
 	void signalConnectionClosed(const CConnection* that);
 	void signalTSduReady(const CConnection* that);
 	void signalCRReady(const CConnection* that);
-	void signalConnectionReady(const CConnection* that);
 
 	// Error signals
 	void signalIOError(QString strErr);

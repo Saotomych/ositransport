@@ -1,11 +1,13 @@
 #include "ositransport.h"
 
-Ositransport::Ositransport()
+OsiTransportTest::OsiTransportTest()
 {
 
 }
 
 int main()
 {
+	OsiTransportTest test;
+
 
 }
