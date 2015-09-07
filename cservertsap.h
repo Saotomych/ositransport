@@ -17,6 +17,11 @@ class OSITRANSPORTSHARED_EXPORT CServerTSAP : public QObject
 	CConnectionListener* conListener;
 	CServerThread* serverThread;
 
+	quint32 maxTPduSizeParam;
+	quint32 maxConnection;
+	quint32 messageTimeout;
+	quint32 messageFragmentTimeout;
+
     explicit CServerTSAP(QObject *parent = 0);
 
 public:
@@ -119,7 +124,7 @@ public:
 	/**
 	 * Get the maxTPDUSize Parameter to be used by this TSAP
 	 */
-	int getMaxTPDUSizeParam();
+	quint32 getMaxTPDUSizeParam();
 
 	/**
 	 * Get the maximum TPDUSize. This is equal to 2^(maxTPDUSizeParam)
@@ -128,7 +133,7 @@ public:
 	 * @return the maximum TPDU size
 	 * @throws IOException
 	 */
-	static int getMaxTPDUSize(int maxTPDUSizeParam);
+	static quint32 getMaxTPDUSize(int maxTPDUSizeParam);
 
 
 signals:
