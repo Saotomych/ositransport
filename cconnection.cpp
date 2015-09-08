@@ -31,6 +31,8 @@ m_closed(true)
 	s_connectionCounter++;
 	s_mutexConCounter.unlock();
 
+	connect(m_pSocket, SIGNAL(stateChanged()), this, SLOT(slotSocketStateChanged()));
+
 }
 
 CConnection::CConnection(const CConnection& other):  QObject(), c_CRCDT(0xe0), c_CCCDT(0xd0)
@@ -548,5 +550,5 @@ void CConnection::close()
 
 void CConnection::slotSocketStateChanged(QAbstractSocket::SocketState socketState)
 {
-	emit signalSocketStateChanged(this, socketState);
+	emit signalConnectionStateChanged(this, socketState);
 }

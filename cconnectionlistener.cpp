@@ -5,27 +5,29 @@ CConnectionListener::CConnectionListener(QObject *parent) :
 {
 }
 
-void CConnectionListener::slotDisconnect()
+void CConnectionListener::slotConnectionStateChanged(CConnection* pConnection, QAbstractSocket::SocketState socketState)
 {
+	Q_CHECK_PTR(pConnection);
+
+	if (socketState == QAbstractSocket::SocketState::ConnectedState)
+		emit signalConnected(pConnection);
+
+	if (socketState == QAbstractSocket::SocketState::UnconnectedState)
+		emit signalDisconnected(pConnection);
 
 }
 
-void CConnectionListener::slotCreated(const CConnection* that)
+void CConnectionListener::slotTSduReady(const CConnection* that)
 {
-
+	emit signalTSduReady(that);
 }
 
-void CConnectionListener::slotConnected(const CConnection* that)
+void CConnectionListener::slotCRReady(const CConnection* that)
 {
-
+	emit signalCRReady(that);
 }
 
-void CConnectionListener::slotClosed(const CConnection* that)
+void CConnectionListener::slotIOError(QString strErr)
 {
-
-}
-
-void CConnectionListener::slotConnectionLost(const CConnection* that)
-{
-
+	emit signalIOError(strErr);
 }

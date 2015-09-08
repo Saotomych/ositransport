@@ -69,9 +69,8 @@ public:
 
 private slots:
 	void slotConnectionClosed(const CConnection* that);
-	void slotConnectionReady(const CConnection* that);
-	void slotTryNewConnection(const CConnection* that);
 	void slotConnectionStateChanged(CConnection* pConnection, QAbstractSocket::SocketState socketState);
+	void slotIOError(QString str);
 
 signals:
 	void signalUserConnected(const CConnection* that);

@@ -60,7 +60,7 @@ public slots:
 	void slotConnectionClosed(const CConnection* that);
 	void slotTSReady(const CConnection* that);
 	void slotCRReady(const CConnection* that);
-	void slotIOError(const CConnection* that);
+	void slotIOError(QString str);
 
 };
 
