@@ -12,20 +12,21 @@ class OSITRANSPORTSHARED_EXPORT CConnectionListener : public QObject
 public:
     explicit CConnectionListener(QObject *parent = 0);
 
-signals:
-	void signalConnected();
-	void signalDisconnected();
-	void signalTSduReady();
-	void signalCRReady();
+    void userConnected(const CConnection* that);
 
-public slots:
-	void slotDisconnect();
+signals:
+	void signalUserConnected(const CConnection* that);
+	void signalUserDisconnected(const CConnection* that);
+	void signalTSduReady(const CConnection* that);
+	void signalCRReady(const CConnection* that);
+	void signalIOError(const CConnection* that);
 
 private slots:
-	void slotCreated(const CConnection* that);
-	void slotConnected(const CConnection* that);
-	void slotClosed(const CConnection* that);
-	void slotConnectionLost(const CConnection* that);
+	void slotConnectionReady(const CConnection* that);
+	void slotConnectionClosed(const CConnection* that);
+	void slotTSduReady(const CConnection* that);
+	void slotCRReady(const CConnection* that);
+	void slotIOError(QString strErr);
 
 };
 

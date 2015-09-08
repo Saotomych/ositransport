@@ -546,3 +546,7 @@ void CConnection::close()
 	}
 }
 
+void CConnection::slotSocketStateChanged(QAbstractSocket::SocketState socketState)
+{
+	emit signalSocketStateChanged(this, socketState);
+}

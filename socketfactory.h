@@ -10,6 +10,7 @@
 
 #include "ositransport_global.h"
 #include "tcpeasysocket.h"
+#include "cconnection.h"
 
 /*
  *  QSocketFactory creates CTcpEasySockets

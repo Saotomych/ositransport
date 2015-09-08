@@ -14,7 +14,7 @@ CSocketFactory* CSocketFactory::inst = nullptr;
  */
 CTcpEasySocket CSocketFactory::CreateSocket()
 {
-	CTcpEasySocket ts;
+	CTcpEasySocket ts();
 
 	return ts;
 }

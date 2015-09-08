@@ -4,6 +4,7 @@
 #include "ositransport_global.h"
 #include "cconnection.h"
 #include "cconnectionlistener.h"
+#include "tcpeasysocket.h"
 
 class CServerThread: public QObject
 {
@@ -27,9 +28,17 @@ private:
 	class CConnectionThread: public QRunnable
 	{
 		CConnection* m_pConnection;
-		explicit CConnectionThread(): m_pConnection(nullptr) {}
+		CServerThread* m_pServerThread;
+		explicit CConnectionThread():
+				m_pConnection(nullptr),
+				m_pServerThread(nullptr)
+		{}
+
 	public:
-		CConnectionThread(CConnection* pconn): m_pConnection(pconn) {}
+		CConnectionThread(CServerThread* pServerThread, CConnection* pConnection):
+			m_pConnection(pConnection),
+			m_pServerThread(pServerThread)
+		{}
 
 		void run();
 	};
@@ -62,10 +71,11 @@ private slots:
 	void slotConnectionClosed(const CConnection* that);
 	void slotConnectionReady(const CConnection* that);
 	void slotTryNewConnection(const CConnection* that);
+	void slotConnectionStateChanged(CConnection* pConnection, QAbstractSocket::SocketState socketState);
 
 signals:
-	void signalUserConnected();
-	void signalUserDisconnected();
+	void signalUserConnected(const CConnection* that);
+	void signalUserDisconnected(const CConnection* that);
 
 };
 

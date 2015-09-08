@@ -23,8 +23,17 @@ CConnection* CServerThread::createNewConnection()
 	try
 	{
 		CConnection* pconn = new CConnection(m_pTcpSocket, m_maxTPduSizeParam, m_messageTimeout, m_messageFragmentTimeout);
+
+		// signals from Connection to ServerThread
 		QObject::connect(pconn, SIGNAL(signalIOError), this, SLOT(slotConnectionClosed));
 		QObject::connect(pconn, SIGNAL(signalCRReady), this, SLOT(slotConnectionReady));
+
+		// signals from Connection to ConnectionListener
+		QObject::connect(pconn, SIGNAL(signalConnectionReady), m_pConnListener, SLOT(slotConnectionReady));
+		QObject::connect(pconn, SIGNAL(signalConnectionClosed), m_pConnListener, SLOT(slotConnectionClosed));
+		QObject::connect(pconn, SIGNAL(signalCRReady), m_pConnListener, SLOT(slotCRReady));
+		QObject::connect(pconn, SIGNAL(signalTSduReady), m_pConnListener, SLOT(slotTSduReady));
+		QObject::connect(pconn, SIGNAL(signalIOError), m_pConnListener, SLOT(slotIOError));
 
 		return pconn;
 	}
@@ -47,7 +56,7 @@ void CServerThread::startConnectionThread(CConnection* pconn)
 	{
 		try
 		{
-			CServerThread::CConnectionThread* pst = new CServerThread::CConnectionThread(pconn);
+			CServerThread::CConnectionThread* pst = new CServerThread::CConnectionThread(this, pconn);
 			pst->setAutoDelete(true);
 			if (addThread2ServerPool(pst)) s_socketCounter++;
 		}
@@ -61,6 +70,11 @@ void CServerThread::startConnectionThread(CConnection* pconn)
 
 void CServerThread::CConnectionThread::run()
 {
+	connect(m_pTcpSocket, SIGNAL(stateChanged()), m_pConnection, SLOT(slotSocketStateChanged()));
+	connect(m_pConnection, SIGNAL(signalConnectionStateChanged()), m_pServerThread, SLOT(slotConnectionStateChanged()));
+
+	// TODO: localPort for listening as parameter
+	m_pTcpSocket->setListenPort(18899);
 	m_pConnection->listenForCR();
 }
 
@@ -72,9 +86,7 @@ void CServerThread::slotConnectionClosed(const CConnection* that)
 	{
 		s_socketCounter--;
 
-		delete that;
-
-		emit signalUserDisconnected();
+		emit signalUserDisconnected(that);
 
 		startConnectionThread(createNewConnection());
 	}
@@ -88,7 +100,7 @@ void CServerThread::slotConnectionReady(const CConnection* that)
 
 void CServerThread::slotTryNewConnection(const CConnection* that)
 {
-
+	emit signalUserConnected(that);
 }
 
 quint32 CServerThread::getMaxConnections()
@@ -111,4 +123,10 @@ void CServerThread::stopServer()
 {
 	m_srvThreadPool.clear();
 	m_srvThreadPool.waitForDone();
+}
+
+// TODO Realize stateChanged of socket in server
+void CServerThread::slotConnectionStateChanged(CConnection* pConnection, QAbstractSocket::SocketState socketState)
+{
+
 }

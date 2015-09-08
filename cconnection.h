@@ -175,9 +175,13 @@ signals:
 	void signalConnectionClosed(const CConnection* that);
 	void signalTSduReady(const CConnection* that);
 	void signalCRReady(const CConnection* that);
+	void signalConnectionStateChanged(const CConnection* that, QAbstractSocket::SocketState socketState);
 
 	// Error signals
 	void signalIOError(QString strErr);
+
+public slots:
+	void slotSocketStateChanged(QAbstractSocket::SocketState socketState);
 
 };
 
