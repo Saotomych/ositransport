@@ -90,7 +90,7 @@ public:
 	 *            remote port
 	 * @return the CConnection Object with signalConnectionReady
 	 */
-	void connectTo(QHostAddress address, quint16 port);
+	CConnection* connectTo(QHostAddress address, quint16 port);
 
 	/**
 	 * Connect to a remote TSAP that is listening at the destination address.
@@ -105,7 +105,7 @@ public:
 	 *            local port
 	 * @return the CConnection Object with signalConnectionReady
 	 */
-	void connectTo(QHostAddress address, quint16 port, QHostAddress localAddr, quint16 localPort);
+	CConnection* connectTo(QHostAddress address, quint16 port, QHostAddress localAddr, quint16 localPort);
 
 	/**
 	 * Set created socketFactory to Client
@@ -116,8 +116,6 @@ public:
 	void setSocketFactory(CSocketFactory& socketFactory);
 
 signals:
-	// Work signals
-	void signalConnectionReady(CConnection that);
 
 	// Error signals
 	void signalIllegalArgument(QString strErr);

@@ -3,13 +3,13 @@
 
 qint32 CConnection::s_connectionCounter = 0;
 
-CConnection::CConnection(CTcpEasySocket* socket,
+CConnection::CConnection(CTcpEasySocket socket,
 						quint32 maxTPduSizeParam,
 						qint32 messageTimeout,
 						qint32 messageFragmentTimeout):
 c_CRCDT(0xe0),
 c_CCCDT(0xd0),
-m_pSocket(socket),
+m_Socket(socket),
 m_srcRef(0),
 m_dstRef(0),
 m_maxTPDUSizeParam(maxTPduSizeParam),
@@ -18,10 +18,10 @@ m_messageTimeout(messageTimeout),
 m_messageFragmentTimeout(messageFragmentTimeout),
 m_closed(true)
 {
-	QScopedPointer<QDataStream> os(new QDataStream(socket));
+	QScopedPointer<QDataStream> os(new QDataStream(&socket));
 	m_pOs.swap(os);
 
-	QScopedPointer<QDataStream> is(new QDataStream(socket));
+	QScopedPointer<QDataStream> is(new QDataStream(&socket));
 	m_pIs.swap(is);
 
 	m_maxTPDUSize = CClientTSAP::getMaxTPDUSize(m_maxTPDUSizeParam);
@@ -31,14 +31,14 @@ m_closed(true)
 	s_connectionCounter++;
 	s_mutexConCounter.unlock();
 
-	connect(m_pSocket, SIGNAL(stateChanged()), this, SLOT(slotSocketStateChanged()));
+	connect(&m_Socket, SIGNAL(stateChanged()), this, SLOT(slotSocketStateChanged()));
 
 }
 
 CConnection::CConnection(const CConnection& other):  QObject(), c_CRCDT(0xe0), c_CCCDT(0xd0)
 {
 	c_connectionNum = other.c_connectionNum;
-    m_pSocket = other.m_pSocket;
+    m_Socket = other.m_Socket;
 
     m_tSelRemote = other.m_tSelRemote;
 	m_tSelLocal = other.m_tSelLocal;
@@ -72,6 +72,11 @@ void CConnection::setSelRemote(QVector<char>& tSelRemote)
 void CConnection::setSelLocal(QVector<char>& tSelLocal)
 {
 	m_tSelLocal = tSelLocal;
+}
+
+void CConnection::setListenSocket()
+{
+	m_Socket.setListen();
 }
 
 quint16 CConnection::readRFC1006Header()
@@ -298,7 +303,7 @@ quint32 CConnection::writeRFC905Service(QVector<char>& tSel1, QVector<char>& tSe
 void CConnection::listenForCR()
 {
 
-	m_pSocket->waitForReadyRead(m_messageFragmentTimeout);
+	m_Socket.waitForReadyRead(m_messageFragmentTimeout);
 
 	// Read Connect Request (CR)
 	if (!readRFC1006Header()) return;
@@ -314,7 +319,7 @@ void CConnection::listenForCR()
 	writeRFC905ServiceHeader(c_CCCDT);
 	writeRFC905Service(m_tSelLocal, m_tSelRemote);
 
-	m_pSocket->flush();
+	m_Socket.flush();
 
 	emit signalCRReady(this);
 }
@@ -322,7 +327,7 @@ void CConnection::listenForCR()
 // Emit for Errors occurs into private functions
 void CConnection::startConnection()
 {
-	if (!m_pSocket->waitForConnected(m_messageTimeout)) return;
+	if (!m_Socket.waitForConnected(m_messageTimeout)) return;
 
 	// Send connection request (CR)
 	writeRFC1006ServiceHeader(3);
@@ -345,7 +350,7 @@ void CConnection::startConnection()
 void CConnection::send(QLinkedList<QVector<char> > tsdus, QLinkedList<quint32> offsets, QLinkedList<quint32> lengths)
 {
 
-	m_pSocket->waitForBytesWritten(m_messageTimeout);
+	m_Socket.waitForBytesWritten(m_messageTimeout);
 
 	quint32 bytesLeft = 0;
 	for (quint32 length: lengths) bytesLeft+=length;
@@ -416,7 +421,7 @@ void CConnection::send(QLinkedList<QVector<char> > tsdus, QLinkedList<quint32> o
 
 	}
 
-	m_pSocket->flush();
+	m_Socket.flush();
 
 }
 
@@ -465,7 +470,7 @@ void CConnection::receive(QByteArray& tSduBuffer)
 
 	TRFC905DataHeader hdr;
 
-	if (m_pSocket->waitForReadyRead(m_messageTimeout) == false) emit signalIOError("Error: Received no data.");
+	if (m_Socket.waitForReadyRead(m_messageTimeout) == false) emit signalIOError("Error: Received no data.");
 
 	do
 	{
@@ -487,7 +492,7 @@ void CConnection::receive(QByteArray& tSduBuffer)
 				return;
 			}
 
-			tSduBuffer += m_pSocket->readAll();
+			tSduBuffer += m_Socket.readAll();
 
 		}
 		else if (hdr.pduCode == 0x80) // Disconnect Request - DR (ISO RFC-905 ISO DP 8073)
@@ -519,7 +524,7 @@ void CConnection::receive(QByteArray& tSduBuffer)
 			return;
 		}
 
-	}while ( eot != 0x80 || (m_pSocket->waitForReadyRead(m_messageFragmentTimeout) == true) );
+	}while ( eot != 0x80 || (m_Socket.waitForReadyRead(m_messageFragmentTimeout) == true) );
 
 	if (!eot)  emit signalIOError("Error: Received last eot error.");
 	else emit signalTSduReady(this);
@@ -531,7 +536,7 @@ void CConnection::disconnect()
 	writeRFC1006ServiceHeader(0);
 	writeRFC905ServiceHeader(0x80); // Disconnect Request - DR (ISO RFC-905 ISO DP 8073)
 
-	m_pSocket->flush();
+	m_Socket.flush();
 
 	close();
 }
@@ -541,7 +546,7 @@ void CConnection::close()
 	if (!m_closed)
 	{
 		m_closed = true;
-		m_pSocket->close();
+		m_Socket.close();
 		m_pIs->setStatus(QDataStream::WriteFailed);
 
 		emit signalConnectionClosed(this);

@@ -15,11 +15,12 @@ private:
 
 	static quint32 s_socketCounter;
 
-	CTcpEasySocket* m_pTcpSocket;
+	CTcpEasySocket m_TcpSocket;
 	quint32 m_maxTPduSizeParam;
 	quint32 m_messageTimeout;
 	quint32 m_messageFragmentTimeout;
 	quint32 m_maxConnections;
+	quint32 m_listenPort;
 
 	CConnectionListener* m_pConnListener;
 
@@ -45,12 +46,12 @@ private:
 
 	explicit CServerThread();
 
-public:
-
 	Q_DISABLE_COPY(CServerThread);
 
+public:
+
 	CServerThread(
-			CTcpEasySocket* sock,
+			CTcpEasySocket sock,
 			quint32 maxTPduSizeParam,
 			quint32 msgTimeout,
 			quint32 msgFragmentTimeout,
@@ -64,6 +65,7 @@ public:
     void setMaxConnections(quint32 maxConnections);
     bool addThread2ServerPool(QRunnable* obj);
 
+public: //API
     void startServer();
     void stopServer();
 

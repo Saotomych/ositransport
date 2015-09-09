@@ -18,6 +18,20 @@ class OsiTransportTest: public QObject
 {
 
 	Q_OBJECT
+
+	OsiTransportTest():
+		pServer(nullptr),
+		pClient(nullptr),
+		pConnection(nullptr),
+		pConnectionListener(nullptr),
+		checkClientConnected(false),
+		checkClientErrorConnected(false),
+		checkServerConnected(false),
+		checkServerErrorConnected(false),
+		checkIllegalArg(false),
+		checkIllegalClassMbr(false)
+	{}
+
 public:
 
 	CServerTSAP* pServer;
@@ -32,9 +46,16 @@ public:
 	bool checkIllegalArg;
 	bool checkIllegalClassMbr;
 
-	const char testData[];
+	static const char testData[];
 
-	static OsiTransportTest* getMainTest() { return this; }
+	static OsiTransportTest* getMainTest() {
+		static OsiTransportTest* pthis = nullptr;
+		if (pthis == nullptr)
+		{
+			pthis = new OsiTransportTest();
+		}
+		return pthis;
+	}
 
 	// Test Classes
 	/*
@@ -43,6 +64,7 @@ public:
 	class Test1:public CppUnit::TestCase
 	{
 	public:
+		Test1(const std::string str): TestCase(str) {}
 		void prepareTest();
 		void runTest();
 	};
@@ -53,6 +75,7 @@ public:
 	class Test2:public CppUnit::TestCase
 	{
 	public:
+		Test2(const std::string str): TestCase(str) {}
 		void runTest();
 	};
 
@@ -62,6 +85,7 @@ public:
 	class Test3:public CppUnit::TestCase
 	{
 	public:
+		Test3(const std::string str): TestCase(str) {}
 		void runTest();
 	};
 

@@ -1,6 +1,6 @@
 #include "ositransport.h"
 
-char OsiTransportTest::testData[] = {
+const char OsiTransportTest::testData[] = {
 						(char) 0x00, (char) 0x01, (char) 0x02, (char) 0x03, (char) 0x04, (char) 0x05, (char) 0x06,
 						(char) 0x07, (char) 0x08, (char) 0x09, (char) 0x0a, (char) 0x0b, (char) 0x0c, (char) 0x0d, (char) 0x0e,
 						(char) 0x0f, (char) 0x00, (char) 0x01, (char) 0x02, (char) 0x03, (char) 0x04, (char) 0x05, (char) 0x06,
@@ -51,9 +51,10 @@ void OsiTransportTest::Test1::prepareTest()
 	pTest->checkIllegalArg = false;
 	pTest->checkIllegalClassMbr = false;
 
+	// Create server and start listening
 	qint32 port = 18982;
 	pTest->pServer = new CServerTSAP(port);
-	pTest->pConnectionListener = &pTest->pServer->startListening();
+	pTest->pConnectionListener = pTest->pServer->createServer();
 
 	// server slots
 	pTest->connect(pTest->pConnectionListener, SIGNAL(signalConnected), pTest, SLOT(slotClientConnected()));
@@ -62,10 +63,10 @@ void OsiTransportTest::Test1::prepareTest()
 	pTest->connect(pTest->pConnectionListener, SIGNAL(signalCRReady), pTest, SLOT(slotServerCRReady()));
 	pTest->connect(pTest->pConnectionListener, SIGNAL(signalIOError), pTest, SLOT(slotServerIOError()));
 
-	pTest->pClient = new CClientTSAP(CSocketFactory::GetSocketFactory());
+	pTest->pServer->startListening();
 
-	// work client slots
-	pTest->connect(pTest->pClient, SIGNAL(signalConnectionReady), pTest, SLOT(slotConnectionReady));
+	// Create client and start connection
+	pTest->pClient = new CClientTSAP(*CSocketFactory::getSocketFactory());
 
 	// client's error slots
 	pTest->connect(pTest->pClient, SIGNAL(signalIllegalArgument), pTest, SLOT(slotIllegalArgument));
@@ -75,27 +76,28 @@ void OsiTransportTest::Test1::prepareTest()
 	pTest->pClient->setMaxTPDUSizeParam(7);
 
 	QHostAddress address("127.0.0.1");
-	pTest->pClient->connectTo(address, port);
+	pTest->pConnection = pTest->pClient->connectTo(address, port);
 
+	// connection slots
+	pTest->connect(pTest->pConnection, SIGNAL(signalConnectionReady), pTest, SLOT(slotConnectionReady));
+	pTest->connect(pTest->pConnection, SIGNAL(signalConnectionClosed), pTest, SLOT(slotConnectionClosed));
+	pTest->connect(pTest->pConnection, SIGNAL(signalTSduReady), pTest, SLOT(slotTSduReady));
+	pTest->connect(pTest->pConnection, SIGNAL(signalCRReady), pTest, SLOT(slotCRReady));
+	pTest->connect(pTest->pConnection, SIGNAL(signalIOError), pTest, SLOT(slotIOError));
+
+	pTest->pConnection->startConnection();
 }
 
 void OsiTransportTest::Test1::runTest()
 {
 	OsiTransportTest* pTest = OsiTransportTest::getMainTest();
 
-	pTest->checkClientConnected = false;
-	pTest->checkClientErrorConnected = false;
-	pTest->checkServerConnected = false;
-	pTest->checkServerErrorConnected = false;
-	pTest->checkIllegalArg = false;
-	pTest->checkIllegalClassMbr = false;
-
-	CPPUNIT_ASSERT_EQUAL_MESSAGE("Test1: checkClientConnected wrong", checkClientConnected, true);
-	CPPUNIT_ASSERT_EQUAL_MESSAGE("Test1: checkClientErrorConnected wrong", checkClientErrorConnected, false);
-	CPPUNIT_ASSERT_EQUAL_MESSAGE("Test1: checkServerConnected wrong", checkServerConnected, true);
-	CPPUNIT_ASSERT_EQUAL_MESSAGE("Test1: checkServerErrorConnected wrong", checkServerErrorConnected, false);
-	CPPUNIT_ASSERT_EQUAL_MESSAGE("Test1: checkIllegalArg wrong", checkIllegalArg, false);
-	CPPUNIT_ASSERT_EQUAL_MESSAGE("Test1: checkIllegalClassMbr wrong", checkIllegalClassMbr, false);
+	CPPUNIT_ASSERT_EQUAL_MESSAGE("Test1: checkClientConnected wrong", true, pTest->checkClientConnected);
+	CPPUNIT_ASSERT_EQUAL_MESSAGE("Test1: checkClientErrorConnected wrong", false, pTest->checkClientErrorConnected);
+	CPPUNIT_ASSERT_EQUAL_MESSAGE("Test1: checkServerConnected wrong", true, pTest->checkServerConnected);
+	CPPUNIT_ASSERT_EQUAL_MESSAGE("Test1: checkServerErrorConnected wrong", false, pTest->checkServerErrorConnected);
+	CPPUNIT_ASSERT_EQUAL_MESSAGE("Test1: checkIllegalArg wrong", false, pTest->checkIllegalArg);
+	CPPUNIT_ASSERT_EQUAL_MESSAGE("Test1: checkIllegalClassMbr wrong", false, pTest->checkIllegalClassMbr);
 }
 
 void OsiTransportTest::Test2::runTest()
@@ -140,12 +142,6 @@ void OsiTransportTest::slotServerIOError(QString str)
 void OsiTransportTest::slotConnectionReady(const CConnection* that)
 {
 
-	// connection slots
-	connect(that, SIGNAL(signalConnectionClosed), this, SLOT(slotConnectionClosed));
-	connect(that, SIGNAL(signalTSduReady), this, SLOT(slotTSduReady));
-	connect(that, SIGNAL(signalCRReady), this, SLOT(slotCRReady));
-	connect(that, SIGNAL(signalIOError), this, SLOT(slotIOError));
-
 	checkClientConnected = true;
 
 }
@@ -188,13 +184,13 @@ void OsiTransportTest::slotIllegalClassMember(QString strErr)
 
 int main()
 {
-	OsiTransportTest test;
+	OsiTransportTest* ptest = OsiTransportTest::getMainTest();
 
-	OsiTransportTest::Test1* test1 = OsiTransportTest::Test1("Connection test");
+	OsiTransportTest::Test1* test1 = new OsiTransportTest::Test1("Connection test");
+	test1->prepareTest();
 
 	CppUnit::TextTestRunner runner;
 	runner.addTest(test1);
-
 	runner.run();
 
 	std::ofstream outFile("testResult.xml");

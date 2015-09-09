@@ -1,46 +1,84 @@
 #include "cservertsap.h"
 
-CServerTSAP::CServerTSAP(qint32 port)
-{
-	this(port, 0, 0, CSocketFactory::GetSocketFactory());
-}
-
-CServerTSAP::CServerTSAP(qint32 port, qint32 backlog, QHostAddress bindAddr)
-{
-	this(port, backlog, bindAddr, conListener, CSocketFactory::GetSocketFactory());
-}
-
-CServerTSAP::CServerTSAP(qint32 port, qint32 backlog, QHostAddress bindAddr,
-		CSocketFactory serverSocketFactory):
+CServerTSAP::CServerTSAP(qint32 _port):
+		localPort(0),
+		backlog(0),
+		conListener(nullptr),
+		serverThread(nullptr),
 		maxTPduSizeParam(16),
 		maxConnection(100),
 		messageTimeout(0),
 		messageFragmentTimeout(60000)
 {
-	if (port < 1 || port > 65535) {
-		throw std::exception("port number is out of bound");
+	if (_port < 1 || _port > 65535) {
+		throw std::invalid_argument("port number is out of bound");
 	}
 
-	this->localPort = port;
-	this->backlog = backlog;
-	this->bindAddr = bindAddr;
-	this->serverSocketFactory = serverSocketFactory;
+	localPort = _port;
 
-	conListener = nullptr;
-	serverThread = nullptr;
+	pServerSocketFactory = CSocketFactory::getSocketFactory();
 }
 
-CConnectionListener& CServerTSAP::startListening()
+CServerTSAP::CServerTSAP(qint32 _port, qint32 _backlog, QHostAddress _bindAddr):
+		localPort(0),
+		backlog(0),
+		conListener(nullptr),
+		serverThread(nullptr),
+		maxTPduSizeParam(16),
+		maxConnection(100),
+		messageTimeout(60000),
+		messageFragmentTimeout(60000)
 {
-	CConnectionListener* cl;
-	CServerThread* cst;
+	if (_port < 1 || _port > 65535) {
+		throw std::invalid_argument("port number is out of bound");
+	}
+
+	localPort = _port;
+	backlog = _backlog;
+	bindAddr = _bindAddr;
+	pServerSocketFactory = CSocketFactory::getSocketFactory();
+
+}
+
+CServerTSAP::CServerTSAP(qint32 _port, qint32 _backlog, QHostAddress _bindAddr,
+		CSocketFactory* _serverSocketFactory):
+		localPort(0),
+		backlog(0),
+		conListener(nullptr),
+		serverThread(nullptr),
+		maxTPduSizeParam(16),
+		maxConnection(100),
+		messageTimeout(60000),
+		messageFragmentTimeout(60000)
+{
+	if (_port < 1 || _port > 65535) {
+		throw std::invalid_argument("port number is out of bound");
+	}
+
+	localPort = _port;
+	backlog = _backlog;
+	bindAddr = _bindAddr;
+	pServerSocketFactory = _serverSocketFactory;
+
+}
+
+void CServerTSAP::startListening()
+{
+	if (serverThread != nullptr)
+		serverThread->startServer();
+}
+
+CConnectionListener* CServerTSAP::createServer()
+{
+	CConnectionListener* cl = nullptr;
+	CServerThread* cst = nullptr;
 
 	try
 	{
 		cl = new CConnectionListener();
 
-		// TODO: FIX Magic numbers
-		cst = new CServerThread(serverSocketFactory.CreateSocket(bindAddr, localPort),
+		cst = new CServerThread(
+				pServerSocketFactory->createSocket(bindAddr, localPort),
 				maxTPduSizeParam,
 				messageTimeout,
 				messageFragmentTimeout,
@@ -66,9 +104,8 @@ CConnectionListener& CServerTSAP::startListening()
 
 	conListener = cl;
 	serverThread = cst;
-	serverThread->startServer();
 
-	return *conListener;
+	return conListener;
 }
 
 void CServerTSAP::stopListening()
@@ -112,7 +149,8 @@ quint32 CServerTSAP::getMaxTPDUSizeParam()
 	return maxTPduSizeParam;
 }
 
-static quint32 CServerTSAP::getMaxTPDUSize(int maxTPDUSizeParam)
+/*static*/
+quint32 CServerTSAP::getMaxTPDUSize(int maxTPDUSizeParam)
 {
 	if (maxTPDUSizeParam < 7 || maxTPDUSizeParam > 16) {
 		std::invalid_argument("CServerTSAP::getMaxTPDUSize: maxTPDUSizeParam is wrong.");

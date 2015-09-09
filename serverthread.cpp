@@ -2,14 +2,14 @@
 
 quint32 CServerThread::s_socketCounter = 0;
 
-CServerThread::	CServerThread(
-		CTcpEasySocket* sock,
+CServerThread::CServerThread(
+		CTcpEasySocket sock,
 		quint32 maxTPduSizeParam,
 		quint32 msgTimeout,
 		quint32 msgFragmentTimeout,
 		quint32 maxConnections,
 		CConnectionListener* listener):
-		m_pTcpSocket(sock),
+		m_TcpSocket(sock),
 		m_maxTPduSizeParam(maxTPduSizeParam),
 		m_messageTimeout(msgTimeout),
 		m_messageFragmentTimeout(msgFragmentTimeout),
@@ -22,7 +22,7 @@ CConnection* CServerThread::createNewConnection()
 {
 	try
 	{
-		CConnection* pconn = new CConnection(m_pTcpSocket, m_maxTPduSizeParam, m_messageTimeout, m_messageFragmentTimeout);
+		CConnection* pconn = new CConnection(m_TcpSocket, m_maxTPduSizeParam, m_messageTimeout, m_messageFragmentTimeout);
 
 		// signals from Connection to ServerThread
 		connect(pconn, SIGNAL(signalIOError), this, SLOT(slotIOError));
@@ -74,9 +74,7 @@ void CServerThread::startConnectionThread(CConnection* pconn)
 
 void CServerThread::CConnectionThread::run()
 {
-
-	// TODO: localPort for listening as parameter
-	m_pTcpSocket->setListenPort(18899);
+	m_pConnection->setListenSocket();
 	m_pConnection->listenForCR();
 }
 

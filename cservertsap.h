@@ -5,6 +5,7 @@
 #include "cconnectionlistener.h"
 #include "socketfactory.h"
 #include "serverthread.h"
+#include "socketfactory.h"
 
 class OSITRANSPORTSHARED_EXPORT CServerTSAP : public QObject
 {
@@ -13,7 +14,7 @@ class OSITRANSPORTSHARED_EXPORT CServerTSAP : public QObject
 	qint32 localPort;
 	qint32 backlog;
 	QHostAddress bindAddr;
-	CSocketFactory serverSocketFactory;
+	CSocketFactory* pServerSocketFactory;
 	CConnectionListener* conListener;
 	CServerThread* serverThread;
 
@@ -64,15 +65,25 @@ public:
 	 * @param serverSocketFactory
 	 *            The ServerSocketFactory to be used to create the ServerSocket
 	 */
-	CServerTSAP(qint32 port, qint32 backlog, QHostAddress bindAddr, CSocketFactory serverSocketFactory);
+	CServerTSAP(qint32 port, qint32 backlog, QHostAddress bindAddr, CSocketFactory* serverSocketFactory);
 
 	/**
 	 * Starts a new thread that listens on the configured port. This method is
 	 * non-blocking.
 	 *
+	 * Prerequest: call createServer and connect to signals from ConnectionListener
+	 *
 	 * @throws IOException
 	 */
-	CConnectionListener& startListening();
+	void startListening();
+
+	/**
+	 * Create environment for a new thread that listens on the configured port. This method is
+	 * non-blocking.
+	 *
+	 * @throws IOException
+	 */
+	CConnectionListener* createServer();
 
 	/**
 	 * Stop listing on the port. Stops the server thread.

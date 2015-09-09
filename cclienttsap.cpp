@@ -51,33 +51,34 @@ int CClientTSAP::getMaxTPDUSize(int maxTPDUSizeParam)
 		return pow(2, maxTPDUSizeParam);
 }
 
-void CClientTSAP::connectTo(QHostAddress address, quint16 port)
+CConnection* CClientTSAP::connectTo(QHostAddress address, quint16 port)
 {
 	QHostAddress lA((quint32) 0);
-	connectTo(address, port, lA, -1);
+
+	return connectTo(address, port, lA, -1);
 }
 
-void CClientTSAP::connectTo(QHostAddress address, quint16 port, QHostAddress localAddr, quint16 localPort)
+CConnection* CClientTSAP::connectTo(QHostAddress address, quint16 port, QHostAddress localAddr, quint16 localPort)
 {
 	if (m_pSocketFactory == nullptr)
 	{
-		qDebug() << "Pointer to Socket Factory is NULL";
-		emit signalIllegalClassMember("CClientTSAP::connectTo: m_pSocketFactory is NULL!");
-		return;
+		qDebug() << "CClientTSAP::connectTo: m_pSocketFactory is NULL!";
+		emit signalIllegalClassMember("CClientTSAP::connectTo: m_pSocketFactory is NULL! Set default factory.");
+
+		m_pSocketFactory = CSocketFactory::getSocketFactory();
 	}
 
 	CTcpEasySocket socket;
 	if (localAddr.isNull())
-		socket = m_pSocketFactory->CreateSocket(address, port);
+		socket = m_pSocketFactory->createSocket(address, port);
 	else
-		socket = m_pSocketFactory->CreateSocket(address, port, localAddr, localPort);
+		socket = m_pSocketFactory->createSocket(address, port, localAddr, localPort);
 
-	CConnection connection(&socket, m_maxTPDUSizeParam, m_messageTimeout, m_messageFragmentTimeout);
-	connection.setSelRemote(m_tSelRemote);
-	connection.setSelLocal(m_tSelLocal);
-	connection.startConnection();
+	CConnection* pconnection = new CConnection(socket, m_maxTPDUSizeParam, m_messageTimeout, m_messageFragmentTimeout);
+	pconnection->setSelRemote(m_tSelRemote);
+	pconnection->setSelLocal(m_tSelLocal);
 
-	emit signalConnectionReady(connection);
+	return pconnection;
 }
 
 void CClientTSAP::setSocketFactory(CSocketFactory& socketFactory)

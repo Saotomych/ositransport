@@ -19,24 +19,32 @@
 class CSocketFactory
 {
 private:
-	CSocketFactory():connect_tout(30000){}
+	CSocketFactory(){}
 	CSocketFactory(const CSocketFactory& that){ *this = that; }
 	CSocketFactory& operator=(const CSocketFactory& that){ *this = that; return *this;}
 
 	static CSocketFactory* inst;
-
 	static QMutex mut;
 
-	int connect_tout;
+	quint32 connect_tout;
 
 public:
-	static CSocketFactory* GetSocketFactory()
+	static CSocketFactory* getSocketFactory()
 	{
 		mut.lock();
 
 		if (inst == nullptr)
 		{
-			inst = new CSocketFactory();
+			try
+			{
+				inst = new CSocketFactory();
+			}
+
+			catch (std::bad_alloc& ex)
+			{
+				qDebug() << ex.what();
+				throw;
+			}
 		}
 
 		mut.unlock();
@@ -44,13 +52,13 @@ public:
 		return inst;
 	}
 
-	void SetConnectTimeout(int tout);
+	void setConnectTimeout(int tout);
 
-	CTcpEasySocket CreateSocket();
-	CTcpEasySocket CreateSocket(QString host, quint16 port);
-	CTcpEasySocket CreateSocket(QHostAddress host, quint16 port);
-	CTcpEasySocket CreateSocket(QString host, quint16 port, QHostAddress localHost, quint16 localPort);
-	CTcpEasySocket CreateSocket(QHostAddress host, quint16 port, QHostAddress localHost, quint16 localPort);
+	CTcpEasySocket createSocket();
+	CTcpEasySocket createSocket(QString host, quint16 port);
+	CTcpEasySocket createSocket(QHostAddress host, quint16 port);
+	CTcpEasySocket createSocket(QString host, quint16 port, QHostAddress localHost, quint16 localPort);
+	CTcpEasySocket createSocket(QHostAddress host, quint16 port, QHostAddress localHost, quint16 localPort);
 };
 
 

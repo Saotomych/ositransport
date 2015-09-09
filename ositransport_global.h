@@ -17,6 +17,8 @@
 #include <QByteArray>
 #include <QThreadPool>
 
+#include <exception>
+
 #if defined(OSITRANSPORT_LIBRARY)
 #  define OSITRANSPORTSHARED_EXPORT Q_DECL_EXPORT
 #else

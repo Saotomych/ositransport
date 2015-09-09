@@ -84,7 +84,7 @@ void CTcpEasySocket::connectToHost(QString strhost, qint16 port)
 	QTcpSocket::connectToHost(host, port);
 }
 
-void CTcpEasySocket::setListenPort(qint16 port)
+void CTcpEasySocket::setListen()
 {
 	this->bind(port, DefaultForPlatform);
 	this->setSocketState(ListeningState);

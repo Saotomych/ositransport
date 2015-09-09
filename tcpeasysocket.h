@@ -9,7 +9,6 @@
 #define TCPEASYSOCKET_H_
 
 #include "ositransport_global.h"
-#include "cconnection.h"
 
 #define TCP_EASY_SOCKET_DEFAULT_TIMEOUT	30000
 
@@ -26,8 +25,6 @@ private:
 	QHostAddress localHost;
 	qint16 localPort;
 
-	CConnection* pMyConnection;
-
 public:
 	CTcpEasySocket();
 	CTcpEasySocket(const CTcpEasySocket& that);
@@ -39,7 +36,7 @@ public:
 	bool setLocalHostPort(QHostAddress localHost, qint16 localPort);
 	void connectToHost(QHostAddress host, qint16 port);
 	void connectToHost(QString host, qint16 port);
-	void setListenPort(qint16 port);
+	void setListen();
 };
 
 #endif /* TCPEASYSOCKET_H_ */
