@@ -6,7 +6,7 @@
 #include "cconnectionlistener.h"
 #include "tcpeasysocket.h"
 
-class CServerThread: public QObject
+class OSITRANSPORTSHARED_EXPORT CServerThread: public QObject
 {
 
 	Q_OBJECT
@@ -15,7 +15,7 @@ private:
 
 	static quint32 s_socketCounter;
 
-	CTcpEasySocket m_TcpSocket;
+	CTcpEasySocket* m_TcpSocket;
 	quint32 m_maxTPduSizeParam;
 	quint32 m_messageTimeout;
 	quint32 m_messageFragmentTimeout;
@@ -51,7 +51,7 @@ private:
 public:
 
 	CServerThread(
-			CTcpEasySocket sock,
+			CTcpEasySocket* sock,
 			quint32 maxTPduSizeParam,
 			quint32 msgTimeout,
 			quint32 msgFragmentTimeout,
@@ -71,8 +71,6 @@ public: //API
 
 private slots:
 	void slotConnectionClosed(const CConnection* that);
-	void slotConnectionStateChanged(CConnection* pConnection, QAbstractSocket::SocketState socketState);
-	void slotIOError(QString str);
 
 signals:
 	void signalUserConnected(const CConnection* that);

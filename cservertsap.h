@@ -23,18 +23,18 @@ class OSITRANSPORTSHARED_EXPORT CServerTSAP : public QObject
 	quint32 messageTimeout;
 	quint32 messageFragmentTimeout;
 
-    explicit CServerTSAP(QObject *parent = 0);
+	explicit CServerTSAP() {}
 
 public:
 
-	/**
+    /**
 	 * Use this constructor to create a server TSAP that can listen on a port.
 	 *
 	 * @param port
 	 *            the TCP port that the ServerSocket will connect to. Should be
 	 *            between 1 and 65535.
 	 */
-	CServerTSAP(qint32 port);
+    CServerTSAP(qint32 port);
 
 	/**
 	 * Use this constructor to create a server TSAP that can listen on a port.
@@ -48,7 +48,7 @@ public:
 	 *            the IP address to bind to. It is passed to
 	 *            java.net.ServerSocket
 	 */
-	CServerTSAP(qint32 port, qint32 backlog, QHostAddress bindAddr);
+    CServerTSAP(qint32 port, qint32 backlog, QHostAddress bindAddr);
 
 	/**
 	 * Use this constructor to create a server TSAP that can listen on a port,
@@ -65,7 +65,7 @@ public:
 	 * @param serverSocketFactory
 	 *            The ServerSocketFactory to be used to create the ServerSocket
 	 */
-	CServerTSAP(qint32 port, qint32 backlog, QHostAddress bindAddr, CSocketFactory* serverSocketFactory);
+    CServerTSAP(qint32 port, qint32 backlog, QHostAddress bindAddr, CSocketFactory* serverSocketFactory);
 
 	/**
 	 * Starts a new thread that listens on the configured port. This method is
@@ -75,7 +75,7 @@ public:
 	 *
 	 * @throws IOException
 	 */
-	void startListening();
+    void startListening();
 
 	/**
 	 * Create environment for a new thread that listens on the configured port. This method is

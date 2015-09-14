@@ -70,20 +70,23 @@ void CServerTSAP::startListening()
 
 CConnectionListener* CServerTSAP::createServer()
 {
-	CConnectionListener* cl = nullptr;
+	CConnectionListener* clistener = nullptr;
 	CServerThread* cst = nullptr;
+	CTcpEasySocket* tcpsocket = nullptr;
 
 	try
 	{
-		cl = new CConnectionListener();
+		clistener = new CConnectionListener();
+
+		tcpsocket = pServerSocketFactory->createSocket(bindAddr, localPort);
 
 		cst = new CServerThread(
-				pServerSocketFactory->createSocket(bindAddr, localPort),
+				tcpsocket,
 				maxTPduSizeParam,
 				messageTimeout,
 				messageFragmentTimeout,
 				maxConnection,
-				cl );
+				clistener );
 	}
 
 	catch(std::bad_alloc& ex)
@@ -102,7 +105,7 @@ CConnectionListener* CServerTSAP::createServer()
 		qDebug() << "CServerTSAP::startListening(): Unknown exception";
 	}
 
-	conListener = cl;
+	conListener = clistener;
 	serverThread = cst;
 
 	return conListener;

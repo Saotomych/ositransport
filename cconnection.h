@@ -15,7 +15,7 @@ private:
 
 	quint32 c_connectionNum;
 
-	CTcpEasySocket m_Socket;
+	CTcpEasySocket* m_pSocket;
 	static qint32 s_connectionCounter;
 	static QMutex s_mutexConCounter;
 
@@ -73,7 +73,7 @@ private:
 
 public:
 
-	CConnection(CTcpEasySocket socket, quint32 maxTPduSizeParam, qint32 m_messageTimeout,
+	CConnection(CTcpEasySocket* socket, quint32 maxTPduSizeParam, qint32 m_messageTimeout,
 				qint32 m_messageFragmentTimeout);
 
 	CConnection(const CConnection& other);

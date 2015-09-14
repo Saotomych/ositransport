@@ -68,7 +68,7 @@ CConnection* CClientTSAP::connectTo(QHostAddress address, quint16 port, QHostAdd
 		m_pSocketFactory = CSocketFactory::getSocketFactory();
 	}
 
-	CTcpEasySocket socket;
+	CTcpEasySocket* socket = nullptr;
 	if (localAddr.isNull())
 		socket = m_pSocketFactory->createSocket(address, port);
 	else

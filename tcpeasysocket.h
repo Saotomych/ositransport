@@ -25,10 +25,10 @@ private:
 	QHostAddress localHost;
 	qint16 localPort;
 
+    Q_DISABLE_COPY(CTcpEasySocket)
+
 public:
 	CTcpEasySocket();
-	CTcpEasySocket(const CTcpEasySocket& that);
-	CTcpEasySocket operator=(const CTcpEasySocket& that);
 
 	~CTcpEasySocket();
 

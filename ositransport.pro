@@ -9,27 +9,32 @@ QT       += network testlib
 QT       -= gui
 
 TEMPLATE = lib
+CONFIG += staticlib
+
 DESTDIR = bin
 VERSION = 0.0.0.0
 CONFIG += build_all
+CONFIG += c++11
 
 DEFINES += OSITRANSPORT_LIBRARY
 
-SOURCES += ositransport.cpp \
-    cclienttsap.cpp \
+SOURCES += cclienttsap.cpp \
+	cconnection.cpp \
+    cconnectionlistener.cpp \
     cservertsap.cpp \
     serverthread.cpp \
-    cconnection.cpp \
-    cconnectionlistener.cpp
+    socketfactory.cpp \
+    tcpeasysocket.cpp
 
-HEADERS += ositransport.h\
-        ositransport_global.h \
+HEADERS += ositransport_global.h \
     cclienttsap.h \
+    cconnection.h \
+    cconnectionlistener.h \
     cservertsap.h \
     serverthread.h \
-    cconnection.h \
-    cconnectionlistener.h
-
+    socketfactory.h \
+    tcpeasysocket.h
+    
 unix {
     CONFIG (debug, debug|release) {
         TARGET = $$qtLibraryTarget(ositransportd)

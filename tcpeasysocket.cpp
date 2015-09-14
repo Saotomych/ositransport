@@ -9,33 +9,12 @@
 
 CTcpEasySocket::CTcpEasySocket():
 		c_DefaultTimeout(TCP_EASY_SOCKET_DEFAULT_TIMEOUT),
-		strhost(QString("")),
 		host((unsigned int)0),
+		strhost(QString("")),
 		port(0),
 		localHost((unsigned int)0),
 		localPort(0)
 {
-}
-
-CTcpEasySocket::CTcpEasySocket(const CTcpEasySocket& that):
-				c_DefaultTimeout(TCP_EASY_SOCKET_DEFAULT_TIMEOUT)
-{
-	strhost = that.strhost;
-	host = that.host;
-	port = that.port;
-	localHost = that.localHost;
-	localPort = that.localPort;
-}
-
-CTcpEasySocket CTcpEasySocket::operator=(const CTcpEasySocket& that)
-{
-	strhost = that.strhost;
-	host = that.host;
-	port = that.port;
-	localHost = that.localHost;
-	localPort = that.localPort;
-
-	return *this;
 }
 
 CTcpEasySocket::~CTcpEasySocket() {
@@ -45,8 +24,7 @@ bool CTcpEasySocket::waitForConnected(quint32 msec)
 {
 	if (!QTcpSocket::waitForConnected(msec))
 	{
-		QString str = QString("Connect failed to host %1:%2 after %3 ms.").arg(localAddress().toString(), QString::number((short)localPort()), QString::number(msec));
-		QDebug(str);
+		qDebug() << QString("Connect failed to host %1:%2 after %3 ms.").arg(localAddress().toString(), QString::number((short)localPort), QString::number(msec));
 		return false;
 	}
 
@@ -57,8 +35,7 @@ bool CTcpEasySocket::setLocalHostPort(QHostAddress localHost, qint16 localPort)
 {
 	if (!bind(localHost, localPort))
 	{
-		QString str = QString("Bind to local host %1:%2 failed.").arg(localAddress().toString(), QString::number((short)localPort()));
-		QDebug(str);
+		qDebug() << QString("Bind to local host %1:%2 failed.").arg(localAddress().toString(), QString::number((short)localPort));
 		return false;
 	}
 

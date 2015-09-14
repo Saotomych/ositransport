@@ -3,7 +3,7 @@
 quint32 CServerThread::s_socketCounter = 0;
 
 CServerThread::CServerThread(
-		CTcpEasySocket sock,
+		CTcpEasySocket* sock,
 		quint32 maxTPduSizeParam,
 		quint32 msgTimeout,
 		quint32 msgFragmentTimeout,

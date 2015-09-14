@@ -7,14 +7,16 @@
 
 #include "socketfactory.h"
 
-CSocketFactory* CSocketFactory::inst = nullptr;
+CSocketFactory* CSocketFactory::s_inst = nullptr;
+
+QMutex CSocketFactory::s_mut;
 
 /*
  * Creates an unconnected socket.
  */
-CTcpEasySocket CSocketFactory::createSocket()
+CTcpEasySocket* CSocketFactory::createSocket()
 {
-	CTcpEasySocket ts();
+	CTcpEasySocket* ts = new CTcpEasySocket();
 
 	return ts;
 }
@@ -23,11 +25,11 @@ CTcpEasySocket CSocketFactory::createSocket()
  * Creates a socket and connects it to the specified remote host at the specified remote port.
  * This socket is configured using the socket options established for this factory.
  */
-CTcpEasySocket CSocketFactory::createSocket(QString host, quint16 port)
+CTcpEasySocket* CSocketFactory::createSocket(QString host, quint16 port)
 {
-	CTcpEasySocket ts;
-	ts.connectToHost(host, port);
-	ts.waitForConnected(connect_tout);
+	CTcpEasySocket* ts = new CTcpEasySocket();
+	ts->connectToHost(host, port);
+	ts->waitForConnected(connect_tout);
 
 	return ts;
 }
@@ -36,11 +38,11 @@ CTcpEasySocket CSocketFactory::createSocket(QString host, quint16 port)
  * Creates a socket and connects it to the specified port number at the specified address.
  * This socket is configured using the socket options established for this factory.
  */
-CTcpEasySocket CSocketFactory::createSocket(QHostAddress host, quint16 port)
+CTcpEasySocket* CSocketFactory::createSocket(QHostAddress host, quint16 port)
 {
-	CTcpEasySocket ts;
-	ts.connectToHost(host, port);
-	ts.waitForConnected(connect_tout);
+	CTcpEasySocket* ts = new CTcpEasySocket();
+	ts->connectToHost(host, port);
+	ts->waitForConnected(connect_tout);
 
 	return ts;
 }
@@ -50,12 +52,12 @@ CTcpEasySocket CSocketFactory::createSocket(QHostAddress host, quint16 port)
  * The socket will also be bound to the local address and port supplied.
  * This socket is configured using the socket options established for this factory.
  */
-CTcpEasySocket CSocketFactory::createSocket(QString host, quint16 port, QHostAddress localHost, quint16 localPort)
+CTcpEasySocket* CSocketFactory::createSocket(QString host, quint16 port, QHostAddress localHost, quint16 localPort)
 {
-	CTcpEasySocket ts;
-	ts.setLocalHostPort(localHost, localPort);
-	ts.connectToHost(host, port);
-	ts.waitForConnected(connect_tout);
+	CTcpEasySocket* ts = new CTcpEasySocket();
+	ts->setLocalHostPort(localHost, localPort);
+	ts->connectToHost(host, port);
+	ts->waitForConnected(connect_tout);
 
 	return ts;
 }
@@ -65,12 +67,12 @@ CTcpEasySocket CSocketFactory::createSocket(QString host, quint16 port, QHostAdd
  * The socket will also be bound to the local address and port supplied.
  * The socket is configured using the socket options established for this factory.
  */
-CTcpEasySocket CSocketFactory::createSocket(QHostAddress host, quint16 port, QHostAddress localHost, quint16 localPort)
+CTcpEasySocket* CSocketFactory::createSocket(QHostAddress host, quint16 port, QHostAddress localHost, quint16 localPort)
 {
-	CTcpEasySocket ts;
-	ts.setLocalHostPort(localHost, localPort);
-	ts.connectToHost(host, port);
-	ts.waitForConnected(connect_tout);
+	CTcpEasySocket* ts = new CTcpEasySocket();
+	ts->setLocalHostPort(localHost, localPort);
+	ts->connectToHost(host, port);
+	ts->waitForConnected(connect_tout);
 
 	return ts;
 }
