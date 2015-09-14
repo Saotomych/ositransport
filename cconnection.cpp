@@ -37,29 +37,29 @@ m_closed(true)
 
 }
 
-CConnection::CConnection(const CConnection& other):  QObject(), c_CRCDT(0xe0), c_CCCDT(0xd0)
-{
-	c_connectionNum = other.c_connectionNum;
-    m_pSocket = other.m_pSocket;
-
-    m_tSelRemote = other.m_tSelRemote;
-	m_tSelLocal = other.m_tSelLocal;
-
-	m_srcRef = other.m_srcRef;
-	m_dstRef = other.m_dstRef;
-	m_maxTPDUSizeParam = other.m_maxTPDUSizeParam;
-	m_maxTPDUSize = other.m_maxTPDUSize;
-	m_messageTimeout = other.m_messageTimeout;
-	m_messageFragmentTimeout = other.m_messageFragmentTimeout;
-	m_closed = other.m_closed;
-
-	QScopedPointer<QDataStream> os(other.m_pOs.data());
-	m_pOs.swap(os);
-
-	QScopedPointer<QDataStream> is(other.m_pIs.data());
-	m_pIs.swap(is);
-}
-
+//CConnection::CConnection(const CConnection& other):  QObject(), c_CRCDT(0xe0), c_CCCDT(0xd0)
+//{
+//	c_connectionNum = other.c_connectionNum;
+//    m_pSocket = other.m_pSocket;
+//
+//    m_tSelRemote = other.m_tSelRemote;
+//	m_tSelLocal = other.m_tSelLocal;
+//
+//	m_srcRef = other.m_srcRef;
+//	m_dstRef = other.m_dstRef;
+//	m_maxTPDUSizeParam = other.m_maxTPDUSizeParam;
+//	m_maxTPDUSize = other.m_maxTPDUSize;
+//	m_messageTimeout = other.m_messageTimeout;
+//	m_messageFragmentTimeout = other.m_messageFragmentTimeout;
+//	m_closed = other.m_closed;
+//
+//	QScopedPointer<QDataStream> os(other.m_pOs.data());
+//	m_pOs.swap(os);
+//
+//	QScopedPointer<QDataStream> is(other.m_pIs.data());
+//	m_pIs.swap(is);
+//}
+//
 CConnection::~CConnection()
 {
 	// Pointers class members created no class

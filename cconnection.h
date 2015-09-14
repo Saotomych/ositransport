@@ -10,6 +10,8 @@ class OSITRANSPORTSHARED_EXPORT CConnection: public QObject
 
 private:
 
+	Q_DISABLE_COPY(CConnection)
+
 	const quint8 c_CRCDT;
 	const quint8 c_CCCDT;
 
@@ -34,7 +36,6 @@ private:
 	QScopedPointer<QDataStream> m_pIs;
 
 	explicit CConnection();
-	CConnection& operator=(const CConnection& that);
 
 	struct TRFC905ServiceHeader
 	{
@@ -76,7 +77,7 @@ public:
 	CConnection(CTcpEasySocket* socket, quint32 maxTPduSizeParam, qint32 m_messageTimeout,
 				qint32 m_messageFragmentTimeout);
 
-	CConnection(const CConnection& other);
+//	CConnection(const CConnection& other);
 
 	virtual ~CConnection();
 
