@@ -1,5 +1,6 @@
-#include "cconnection.h"
-#include "cclienttsap.h"
+#include "connection.h"
+
+#include "clienttsap.h"	// include for getMaxPDUSize // TODO fix this back link
 
 qint32 CConnection::s_connectionCounter = 0;
 
@@ -20,10 +21,10 @@ m_messageTimeout(messageTimeout),
 m_messageFragmentTimeout(messageFragmentTimeout),
 m_closed(true)
 {
-	QScopedPointer<QDataStream> os(new QDataStream(socket));
+	QScopedPointer<QDataStream> os(new QDataStream(m_pSocket->getSocket()));
 	m_pOs.swap(os);
 
-	QScopedPointer<QDataStream> is(new QDataStream(socket));
+	QScopedPointer<QDataStream> is(new QDataStream(m_pSocket->getSocket()));
 	m_pIs.swap(is);
 
 	m_maxTPDUSize = CClientTSAP::getMaxTPDUSize(m_maxTPDUSizeParam);
@@ -33,37 +34,15 @@ m_closed(true)
 	s_connectionCounter++;
 	s_mutexConCounter.unlock();
 
-	connect(m_pSocket, SIGNAL(stateChanged()), this, SLOT(slotSocketStateChanged()));
-
 }
 
-//CConnection::CConnection(const CConnection& other):  QObject(), c_CRCDT(0xe0), c_CCCDT(0xd0)
-//{
-//	c_connectionNum = other.c_connectionNum;
-//    m_pSocket = other.m_pSocket;
-//
-//    m_tSelRemote = other.m_tSelRemote;
-//	m_tSelLocal = other.m_tSelLocal;
-//
-//	m_srcRef = other.m_srcRef;
-//	m_dstRef = other.m_dstRef;
-//	m_maxTPDUSizeParam = other.m_maxTPDUSizeParam;
-//	m_maxTPDUSize = other.m_maxTPDUSize;
-//	m_messageTimeout = other.m_messageTimeout;
-//	m_messageFragmentTimeout = other.m_messageFragmentTimeout;
-//	m_closed = other.m_closed;
-//
-//	QScopedPointer<QDataStream> os(other.m_pOs.data());
-//	m_pOs.swap(os);
-//
-//	QScopedPointer<QDataStream> is(other.m_pIs.data());
-//	m_pIs.swap(is);
-//}
-//
 CConnection::~CConnection()
 {
 	// Pointers class members created no class
 	// so that destructor and copy constructor are public
+
+	delete m_pSocket;
+
 }
 
 void CConnection::setSelRemote(QVector<char>& tSelRemote)
@@ -74,11 +53,6 @@ void CConnection::setSelRemote(QVector<char>& tSelRemote)
 void CConnection::setSelLocal(QVector<char>& tSelLocal)
 {
 	m_tSelLocal = tSelLocal;
-}
-
-void CConnection::setListenSocket()
-{
-	m_pSocket->setListen();
 }
 
 quint16 CConnection::readRFC1006Header()
@@ -305,7 +279,7 @@ quint32 CConnection::writeRFC905Service(QVector<char>& tSel1, QVector<char>& tSe
 void CConnection::listenForCR()
 {
 
-	m_pSocket->waitForReadyRead(m_messageFragmentTimeout);
+	m_pSocket->getSocket()->waitForReadyRead(m_messageFragmentTimeout);
 
 	// Read Connect Request (CR)
 	if (!readRFC1006Header()) return;
@@ -321,7 +295,7 @@ void CConnection::listenForCR()
 	writeRFC905ServiceHeader(c_CCCDT);
 	writeRFC905Service(m_tSelLocal, m_tSelRemote);
 
-	m_pSocket->flush();
+	m_pSocket->getSocket()->flush();
 
 	emit signalCRReady(this);
 }
@@ -329,7 +303,16 @@ void CConnection::listenForCR()
 // Emit for Errors occurs into private functions
 void CConnection::startConnection()
 {
-	if (!m_pSocket->waitForConnected(m_messageTimeout)) return;
+	if (m_pSocket->getSocket()->state() != QAbstractSocket::ConnectedState)
+	{
+		QString str = QString("Socket not connected to %1:%2")
+				.arg(m_pSocket->getHost().toString())
+				.arg(m_pSocket->getPort());
+
+		emit signalIOError(str);
+
+		return;
+	}
 
 	// Send connection request (CR)
 	writeRFC1006ServiceHeader(3);
@@ -352,7 +335,7 @@ void CConnection::startConnection()
 void CConnection::send(QLinkedList<QVector<char> > tsdus, QLinkedList<quint32> offsets, QLinkedList<quint32> lengths)
 {
 
-	m_pSocket->waitForBytesWritten(m_messageTimeout);
+	m_pSocket->getSocket()->waitForBytesWritten(m_messageTimeout);
 
 	quint32 bytesLeft = 0;
 	for (quint32 length: lengths) bytesLeft+=length;
@@ -423,7 +406,7 @@ void CConnection::send(QLinkedList<QVector<char> > tsdus, QLinkedList<quint32> o
 
 	}
 
-	m_pSocket->flush();
+	m_pSocket->getSocket()->flush();
 
 }
 
@@ -472,7 +455,7 @@ void CConnection::receive(QByteArray& tSduBuffer)
 
 	TRFC905DataHeader hdr;
 
-	if (m_pSocket->waitForReadyRead(m_messageTimeout) == false) emit signalIOError("Error: Received no data.");
+	if (m_pSocket->getSocket()->waitForReadyRead(m_messageTimeout) == false) emit signalIOError("Error: Received no data.");
 
 	do
 	{
@@ -494,7 +477,7 @@ void CConnection::receive(QByteArray& tSduBuffer)
 				return;
 			}
 
-			tSduBuffer += m_pSocket->readAll();
+			tSduBuffer += m_pSocket->getSocket()->readAll();
 
 		}
 		else if (hdr.pduCode == 0x80) // Disconnect Request - DR (ISO RFC-905 ISO DP 8073)
@@ -526,7 +509,7 @@ void CConnection::receive(QByteArray& tSduBuffer)
 			return;
 		}
 
-	}while ( eot != 0x80 || (m_pSocket->waitForReadyRead(m_messageFragmentTimeout) == true) );
+	}while ( eot != 0x80 || (m_pSocket->getSocket()->waitForReadyRead(m_messageFragmentTimeout) == true) );
 
 	if (!eot)  emit signalIOError("Error: Received last eot error.");
 	else emit signalTSduReady(this);
@@ -538,7 +521,7 @@ void CConnection::disconnect()
 	writeRFC1006ServiceHeader(0);
 	writeRFC905ServiceHeader(0x80); // Disconnect Request - DR (ISO RFC-905 ISO DP 8073)
 
-	m_pSocket->flush();
+	m_pSocket->getSocket()->flush();
 
 	close();
 }
@@ -548,7 +531,7 @@ void CConnection::close()
 	if (!m_closed)
 	{
 		m_closed = true;
-		m_pSocket->close();
+		m_pSocket->getSocket()->close();
 		m_pIs->setStatus(QDataStream::WriteFailed);
 
 		delete m_pSocket;
@@ -557,7 +540,3 @@ void CConnection::close()
 	}
 }
 
-void CConnection::slotSocketStateChanged(QAbstractSocket::SocketState socketState)
-{
-	emit signalConnectionStateChanged(this, socketState);
-}

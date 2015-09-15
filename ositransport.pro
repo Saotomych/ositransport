@@ -18,20 +18,20 @@ CONFIG += c++11
 
 DEFINES += OSITRANSPORT_LIBRARY
 
-SOURCES += cclienttsap.cpp \
-	cconnection.cpp \
-    cconnectionlistener.cpp \
-    cservertsap.cpp \
-    serverthread.cpp \
+SOURCES += clienttsap.cpp \
+	connection.cpp \
+    connectionlistener.cpp \
+    servertsap.cpp \
+    connectionserver.cpp \
     socketfactory.cpp \
     tcpeasysocket.cpp
 
 HEADERS += ositransport_global.h \
-    cclienttsap.h \
-    cconnection.h \
-    cconnectionlistener.h \
-    cservertsap.h \
-    serverthread.h \
+    clienttsap.h \
+    connection.h \
+    connectionlistener.h \
+    servertsap.h \
+    connectionserver.h \
     socketfactory.h \
     tcpeasysocket.h
     
@@ -52,6 +52,7 @@ INCLUDEPATH += include/ositransport
 
 CONFIG (debug, debug|release){
     OBJECTS_DIR = build/debug
+    DEFINES += DEBUG
 } else {
     OBJECTS_DIR = build/release
 }

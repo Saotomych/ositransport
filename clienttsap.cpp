@@ -1,5 +1,4 @@
-#include "cclienttsap.h"
-#include "cconnection.h"
+#include "clienttsap.h"
 
 CClientTSAP::CClientTSAP():
 		m_pSocketFactory(nullptr),
@@ -51,14 +50,14 @@ int CClientTSAP::getMaxTPDUSize(int maxTPDUSizeParam)
 		return pow(2, maxTPDUSizeParam);
 }
 
-CConnection* CClientTSAP::connectTo(QHostAddress address, quint16 port)
+CConnection* CClientTSAP::createConnection(QHostAddress address, quint16 port)
 {
-	QHostAddress lA((quint32) 0);
+	QHostAddress lA(QHostAddress::Null);
 
-	return connectTo(address, port, lA, -1);
+	return createConnection(address, port, lA, -1);
 }
 
-CConnection* CClientTSAP::connectTo(QHostAddress address, quint16 port, QHostAddress localAddr, quint16 localPort)
+CConnection* CClientTSAP::createConnection(QHostAddress address, quint16 port, QHostAddress localAddr, quint16 localPort)
 {
 	if (m_pSocketFactory == nullptr)
 	{

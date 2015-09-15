@@ -4,6 +4,7 @@
 #include <QtCore/qglobal.h>
 #include <QObject>
 #include <QTcpSocket>
+#include <QTcpServer>
 #include <QHostAddress>
 #include <QMutex>
 #include <QDebug>

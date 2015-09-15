@@ -1,8 +1,8 @@
-#include "cservertsap.h"
+#include "servertsap.h"
 
 CServerTSAP::CServerTSAP(qint32 _port):
-		localPort(0),
 		backlog(0),
+		bindAddr(QHostAddress::AnyIPv4),
 		conListener(nullptr),
 		serverThread(nullptr),
 		maxTPduSizeParam(16),
@@ -20,8 +20,6 @@ CServerTSAP::CServerTSAP(qint32 _port):
 }
 
 CServerTSAP::CServerTSAP(qint32 _port, qint32 _backlog, QHostAddress _bindAddr):
-		localPort(0),
-		backlog(0),
 		conListener(nullptr),
 		serverThread(nullptr),
 		maxTPduSizeParam(16),
@@ -42,8 +40,6 @@ CServerTSAP::CServerTSAP(qint32 _port, qint32 _backlog, QHostAddress _bindAddr):
 
 CServerTSAP::CServerTSAP(qint32 _port, qint32 _backlog, QHostAddress _bindAddr,
 		CSocketFactory* _serverSocketFactory):
-		localPort(0),
-		backlog(0),
 		conListener(nullptr),
 		serverThread(nullptr),
 		maxTPduSizeParam(16),
@@ -71,17 +67,14 @@ void CServerTSAP::startListening()
 CConnectionListener* CServerTSAP::createServer()
 {
 	CConnectionListener* clistener = nullptr;
-	CServerThread* cst = nullptr;
-	CTcpEasySocket* tcpsocket = nullptr;
+	CConnectionServer* cst = nullptr;
 
 	try
 	{
 		clistener = new CConnectionListener();
 
-		tcpsocket = pServerSocketFactory->createSocket(bindAddr, localPort);
-
-		cst = new CServerThread(
-				tcpsocket,
+		cst = new CConnectionServer(
+				localPort,
 				maxTPduSizeParam,
 				messageTimeout,
 				messageFragmentTimeout,

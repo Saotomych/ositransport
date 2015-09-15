@@ -3,7 +3,7 @@
 
 #include "ositransport_global.h"
 #include "socketfactory.h"
-#include "cconnection.h"
+#include "connection.h"
 #include <cmath>
 #include <stdexcept>
 
@@ -90,7 +90,7 @@ public:
 	 *            remote port
 	 * @return the CConnection Object with signalConnectionReady
 	 */
-	CConnection* connectTo(QHostAddress address, quint16 port);
+	CConnection* createConnection(QHostAddress address, quint16 port);
 
 	/**
 	 * Connect to a remote TSAP that is listening at the destination address.
@@ -105,7 +105,7 @@ public:
 	 *            local port
 	 * @return the CConnection Object with signalConnectionReady
 	 */
-	CConnection* connectTo(QHostAddress address, quint16 port, QHostAddress localAddr, quint16 localPort);
+	CConnection* createConnection(QHostAddress address, quint16 port, QHostAddress localAddr, quint16 localPort);
 
 	/**
 	 * Set created socketFactory to Client

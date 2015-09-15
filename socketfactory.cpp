@@ -16,9 +16,22 @@ QMutex CSocketFactory::s_mut;
  */
 CTcpEasySocket* CSocketFactory::createSocket()
 {
-	CTcpEasySocket* ts = new CTcpEasySocket();
+	CTcpEasySocket* ts = new CTcpEasySocket(new QTcpSocket());
 
 	return ts;
+}
+
+void CSocketFactory::printConnectResult(bool bResult, CTcpEasySocket* ts, QString host, quint16 port)
+{
+	if (bResult)
+	{
+		qDebug() << QString("Connected to %1:%2.").arg(host).arg(port);
+	}
+	else
+	{
+		QString err = ts->getSocket()->errorString();
+		qDebug() << QString("Connection to %1:%2 wrong = %3.").arg(host).arg(port).arg(err);
+	}
 }
 
 /*
@@ -27,9 +40,14 @@ CTcpEasySocket* CSocketFactory::createSocket()
  */
 CTcpEasySocket* CSocketFactory::createSocket(QString host, quint16 port)
 {
-	CTcpEasySocket* ts = new CTcpEasySocket();
-	ts->connectToHost(host, port);
-	ts->waitForConnected(connect_tout);
+	CTcpEasySocket* ts = new CTcpEasySocket(new QTcpSocket());
+
+	QHostAddress h(host);
+	ts->getSocket()->bind(h, port);
+	ts->getSocket()->connectToHost(host, port);
+	bool bRes = ts->getSocket()->waitForConnected(connect_tout);
+
+	printConnectResult( bRes, ts, host, port );
 
 	return ts;
 }
@@ -40,9 +58,13 @@ CTcpEasySocket* CSocketFactory::createSocket(QString host, quint16 port)
  */
 CTcpEasySocket* CSocketFactory::createSocket(QHostAddress host, quint16 port)
 {
-	CTcpEasySocket* ts = new CTcpEasySocket();
-	ts->connectToHost(host, port);
-	ts->waitForConnected(connect_tout);
+	CTcpEasySocket* ts = new CTcpEasySocket(new QTcpSocket());
+
+	ts->getSocket()->bind(host, port);
+	ts->getSocket()->connectToHost(host, port);
+	bool bRes = ts->getSocket()->waitForConnected(connect_tout);
+
+	printConnectResult( bRes, ts, host.toString(), port );
 
 	return ts;
 }
@@ -54,10 +76,15 @@ CTcpEasySocket* CSocketFactory::createSocket(QHostAddress host, quint16 port)
  */
 CTcpEasySocket* CSocketFactory::createSocket(QString host, quint16 port, QHostAddress localHost, quint16 localPort)
 {
-	CTcpEasySocket* ts = new CTcpEasySocket();
+	CTcpEasySocket* ts = new CTcpEasySocket(new QTcpSocket());
 	ts->setLocalHostPort(localHost, localPort);
-	ts->connectToHost(host, port);
-	ts->waitForConnected(connect_tout);
+
+	QHostAddress h(host);
+	ts->getSocket()->bind(h, port);
+	ts->getSocket()->connectToHost(host, port);
+	bool bRes = ts->getSocket()->waitForConnected(connect_tout);
+
+	printConnectResult( bRes, ts, host, port );
 
 	return ts;
 }
@@ -69,10 +96,14 @@ CTcpEasySocket* CSocketFactory::createSocket(QString host, quint16 port, QHostAd
  */
 CTcpEasySocket* CSocketFactory::createSocket(QHostAddress host, quint16 port, QHostAddress localHost, quint16 localPort)
 {
-	CTcpEasySocket* ts = new CTcpEasySocket();
+	CTcpEasySocket* ts = new CTcpEasySocket(new QTcpSocket());
 	ts->setLocalHostPort(localHost, localPort);
-	ts->connectToHost(host, port);
-	ts->waitForConnected(connect_tout);
+
+	ts->getSocket()->bind(host, port);
+	ts->getSocket()->connectToHost(host, port);
+	bool bRes = ts->getSocket()->waitForConnected(connect_tout);
+
+	printConnectResult( bRes, ts, host.toString(), port );
 
 	return ts;
 }

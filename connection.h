@@ -85,8 +85,6 @@ public:
 
 	void setSelLocal(QVector<char>& tSelLocal);
 
-	void setListenSocket();
-
 	/**
 	 * This function is called once a client has connected to the server. It listens for a Connection Request (CR). If
 	 * this is successful it replies afterwards with a Connection Confirm (CC). According to the norm a syntax error in
@@ -178,13 +176,9 @@ signals:
 	void signalConnectionClosed(const CConnection* that);
 	void signalTSduReady(const CConnection* that);
 	void signalCRReady(const CConnection* that);
-	void signalConnectionStateChanged(const CConnection* that, QAbstractSocket::SocketState socketState);
 
 	// Error signals
 	void signalIOError(QString strErr);
-
-public slots:
-	void slotSocketStateChanged(QAbstractSocket::SocketState socketState);
 
 };
 

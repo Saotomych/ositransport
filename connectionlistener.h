@@ -2,7 +2,7 @@
 #define CCONNECTIONLISTENER_H
 
 #include "ositransport_global.h"
-#include "cconnection.h"
+#include "connection.h"
 
 class OSITRANSPORTSHARED_EXPORT CConnectionListener : public QObject
 {
@@ -20,7 +20,8 @@ signals:
 	void signalIOError(QString str);
 
 private slots:
-	void slotConnectionStateChanged(CConnection* pConnection, QAbstractSocket::SocketState socketState);
+	void slotClientConnected(const CConnection* that);
+	void slotClientDisconnected(const CConnection* that);
 	void slotTSduReady(const CConnection* that);
 	void slotCRReady(const CConnection* that);
 	void slotIOError(QString strErr);

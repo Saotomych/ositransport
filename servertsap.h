@@ -2,21 +2,19 @@
 #define CSERVERTSAP_H
 
 #include "ositransport_global.h"
-#include "cconnectionlistener.h"
+#include "connectionlistener.h"
 #include "socketfactory.h"
-#include "serverthread.h"
+#include "connectionserver.h"
 #include "socketfactory.h"
 
-class OSITRANSPORTSHARED_EXPORT CServerTSAP : public QObject
+class OSITRANSPORTSHARED_EXPORT CServerTSAP
 {
-    Q_OBJECT
-
 	qint32 localPort;
 	qint32 backlog;
 	QHostAddress bindAddr;
 	CSocketFactory* pServerSocketFactory;
 	CConnectionListener* conListener;
-	CServerThread* serverThread;
+	CConnectionServer* serverThread;
 
 	quint32 maxTPduSizeParam;
 	quint32 maxConnection;
@@ -145,11 +143,6 @@ public:
 	 * @throws IOException
 	 */
 	static quint32 getMaxTPDUSize(int maxTPDUSizeParam);
-
-
-signals:
-
-public slots:
 
 };
 

@@ -10,7 +10,7 @@
 
 #include "ositransport_global.h"
 #include "tcpeasysocket.h"
-#include "cconnection.h"
+#include "connection.h"
 
 /*
  *  QSocketFactory creates CTcpEasySockets
@@ -19,8 +19,8 @@
 class OSITRANSPORTSHARED_EXPORT CSocketFactory
 {
 private:
-	CSocketFactory(): connect_tout(0) {}
-	CSocketFactory(const CSocketFactory& that){ *this = that; }
+	CSocketFactory(): connect_tout(30000) {}
+	CSocketFactory(const CSocketFactory& that): connect_tout(30000) { *this = that; }
 	CSocketFactory& operator=(const CSocketFactory& that){ *this = that; return *this;}
 
 	static CSocketFactory* s_inst;
@@ -59,8 +59,8 @@ public:
 	CTcpEasySocket* createSocket(QHostAddress host, quint16 port);
 	CTcpEasySocket* createSocket(QString host, quint16 port, QHostAddress localHost, quint16 localPort);
 	CTcpEasySocket* createSocket(QHostAddress host, quint16 port, QHostAddress localHost, quint16 localPort);
+
+	void printConnectResult(bool bResult, CTcpEasySocket* ts, QString host, quint16 port);
 };
-
-
 
 #endif /* SOCKETFACTORY_H_ */
