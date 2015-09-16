@@ -9,17 +9,17 @@
 
 class OSITRANSPORTSHARED_EXPORT CServerTSAP
 {
-	qint32 localPort;
-	qint32 backlog;
-	QHostAddress bindAddr;
-	CSocketFactory* pServerSocketFactory;
-	CConnectionListener* conListener;
-	CConnectionServer* serverThread;
+	qint32 m_localPort;
+	qint32 m_backlog;
+	QHostAddress m_bindAddr;
+	CSocketFactory* m_pServerSocketFactory;
+	CConnectionListener* m_conListener;
+	CConnectionServer* m_serverThread;
 
-	quint32 maxTPduSizeParam;
-	quint32 maxConnection;
-	quint32 messageTimeout;
-	quint32 messageFragmentTimeout;
+	quint32 m_maxTPduSizeParam;
+	quint32 m_maxConnection;
+	quint32 m_messageTimeout;
+	quint32 m_messageFragmentTimeout;
 
 	explicit CServerTSAP() {}
 

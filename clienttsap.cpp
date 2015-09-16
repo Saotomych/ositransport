@@ -2,16 +2,16 @@
 
 CClientTSAP::CClientTSAP():
 		m_pSocketFactory(nullptr),
-		m_messageTimeout(0),
-		m_messageFragmentTimeout(60000),
+		m_messageTimeout(5000),
+		m_messageFragmentTimeout(5000),
 		m_maxTPDUSizeParam(65531)
 {
 }
 
 CClientTSAP::CClientTSAP(CSocketFactory& socketFactory):
 		m_pSocketFactory(&socketFactory),
-		m_messageTimeout(0),
-		m_messageFragmentTimeout(60000),
+		m_messageTimeout(5000),
+		m_messageFragmentTimeout(5000),
 		m_maxTPDUSizeParam(65531)
 {
 }

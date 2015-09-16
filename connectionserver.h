@@ -20,23 +20,24 @@ private:
 
 	CConnectionListener* m_pConnListener;
 
-	QThreadPool m_srvThreadPool;
-
 	explicit CConnectionServer();
 
 	Q_DISABLE_COPY(CConnectionServer);
 
-	QTcpServer m_TcpServer;
+	QTcpServer* m_pTcpServer;
 
 public:
 
 	CConnectionServer(
+			QObject *parent,
 			quint32 localPort,
 			quint32 maxTPduSizeParam,
 			quint32 msgTimeout,
 			quint32 msgFragmentTimeout,
 			quint32 maxConnections,
 			CConnectionListener* listener);
+
+	virtual ~CConnectionServer();
 
 	CConnection* createNewConnection(CTcpEasySocket* tcpSocket);
 
@@ -47,9 +48,14 @@ public: //API
     void startServer();
     void stopServer();
 
+//protected:
+//    virtual void incomingConnection(qintptr handle);
+//    //virtual void incomingConnection(qintptr socketDescriptor);
+
 private slots:
-	void slotConnectionClosed(const CConnection* that);
-	void slotAcceptConnection();
+	void slotServerConnectionClosed(const CConnection* that);
+	void slotServerAcceptConnection();
+	void slotServerError(QAbstractSocket::SocketError socketError);
 
 signals:
 	void signalClientConnected(const CConnection* that);

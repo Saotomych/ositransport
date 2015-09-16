@@ -1,22 +1,31 @@
 #include "connectionserver.h"
 
 CConnectionServer::CConnectionServer(
+		QObject *parent,
 		quint32 localPort,
 		quint32 maxTPduSizeParam,
 		quint32 msgTimeout,
 		quint32 msgFragmentTimeout,
 		quint32 maxConnections,
 		CConnectionListener* listener):
+		QObject(parent),
 		m_localPort(localPort),
 		m_maxTPduSizeParam(maxTPduSizeParam),
 		m_messageTimeout(msgTimeout),
 		m_messageFragmentTimeout(msgFragmentTimeout),
 		m_pConnListener(listener)
 {
-	m_TcpServer.setMaxPendingConnections(maxConnections);
+	m_pTcpServer = new QTcpServer(this);
+	connect(m_pTcpServer, SIGNAL(newConnection()),this, SLOT(slotServerAcceptConnection()));
+	connect(m_pTcpServer, SIGNAL(acceptError(QAbstractSocket::SocketError socketError)),this, SLOT(slotServerError(QAbstractSocket::SocketError socketError)));
 
-	connect(&m_TcpServer, SIGNAL(newConnection()),this, SLOT(slotAcceptConnection()));
+	m_pTcpServer->setMaxPendingConnections(maxConnections);
 
+}
+
+CConnectionServer::~CConnectionServer()
+{
+	delete m_pTcpServer;
 }
 
 CConnection* CConnectionServer::createNewConnection(CTcpEasySocket* tcpSocket)
@@ -26,9 +35,7 @@ CConnection* CConnectionServer::createNewConnection(CTcpEasySocket* tcpSocket)
 		CConnection* pconn = new CConnection(tcpSocket, m_maxTPduSizeParam, m_messageTimeout, m_messageFragmentTimeout);
 
 		// signals from Connection to ServerThread
-		connect(pconn, SIGNAL(signalIOError(QString)), this, SLOT(slotIOError(QString)));
-		connect(pconn, SIGNAL(signalCRReady(const CConnection*)), this, SLOT(slotConnectionReady(const CConnection*)));
-		connect(pconn, SIGNAL(signalConnectionClosed(const CConnection*)), this, SLOT(slotConnectionClosed(const CConnection*)));
+		connect(pconn, SIGNAL(signalConnectionClosed(const CConnection*)), this, SLOT(slotServerConnectionClosed(const CConnection*)));
 
 		// signal from server to ConnectionListener
 		connect(this, SIGNAL(signalClientConnected(const CConnection*)), m_pConnListener, SLOT(slotClientConnected(const CConnection*)));
@@ -51,31 +58,34 @@ CConnection* CConnectionServer::createNewConnection(CTcpEasySocket* tcpSocket)
 
 void CConnectionServer::startServer()
 {
-	if (m_TcpServer.isListening() == false)
-		m_TcpServer.listen(QHostAddress::AnyIPv4, m_localPort);
+	if (m_pTcpServer->isListening() == false)
+	{
+
+		m_pTcpServer->listen(QHostAddress::AnyIPv4, m_localPort);
+	}
 }
 
 quint32 CConnectionServer::getMaxConnections()
 {
-	return m_TcpServer.maxPendingConnections();
+	return m_pTcpServer->maxPendingConnections();
 }
 
 void CConnectionServer::setMaxConnections(quint32 maxConnections)
 {
-	m_TcpServer.setMaxPendingConnections(maxConnections);
+	m_pTcpServer->setMaxPendingConnections(maxConnections);
 }
 
 void CConnectionServer::stopServer()
 {
-	m_TcpServer.close();
+	m_pTcpServer->close();
 }
 
 /*** Slot Section ***/
-void CConnectionServer::slotAcceptConnection()
+void CConnectionServer::slotServerAcceptConnection()
 {
-	qDebug() << "CServerThread::slotAcceptConnection";
+	qDebug() << "CConnectionServer::slotServerAcceptConnection";
 
-	QTcpSocket* qsock = m_TcpServer.nextPendingConnection();
+	QTcpSocket* qsock = m_pTcpServer->nextPendingConnection();
 	CTcpEasySocket* mysock = new CTcpEasySocket(qsock);
 	CConnection* pconn = createNewConnection(mysock);
 
@@ -84,14 +94,20 @@ void CConnectionServer::slotAcceptConnection()
 	pconn->listenForCR();
 }
 
-void CConnectionServer::slotConnectionClosed(const CConnection* that)
+void CConnectionServer::slotServerConnectionClosed(const CConnection* that)
 {
-	qDebug() << "CServerThread::slotConnectionClosed";
+	qDebug() << "CConnectionServer::slotServerConnectionClosed";
 
 	Q_CHECK_PTR(that);
 
 	emit signalClientDisconnected(that);
 
-	if (m_TcpServer.isListening() == false)
-		m_TcpServer.listen(QHostAddress::AnyIPv4, m_localPort);
+	if (m_pTcpServer->isListening() == false)
+		m_pTcpServer->listen(QHostAddress::AnyIPv4, m_localPort);
+}
+
+void CConnectionServer::slotServerError(QAbstractSocket::SocketError socketError)
+{
+	qDebug() << QString("CConnectionServer::slotServerError %1").arg(socketError);
+
 }

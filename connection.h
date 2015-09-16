@@ -61,7 +61,7 @@ private:
 	};
 
 	quint16 readRFC1006Header();	// Call on start of receiving. Return Packet Length.
-	TRFC905ServiceHeader readRFC905ServiceHeader(qint8 cdtCode, quint8 readClass);	// Return RFC905 header as struct.
+	TRFC905ServiceHeader readRFC905ServiceHeader(quint8 cdtCode, quint8 readClass);	// Return RFC905 header as struct.
 	TRFC905DataHeader readRFC905DataHeader();
 	quint32 readRFC905VariablePart(quint32 lengthIndicator, QVector<char>& tSel1, QVector<char>& tSel2);
 	quint32 readUserDataBlock(QVector<char>& tSel);

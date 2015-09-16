@@ -72,7 +72,7 @@ quint16 CConnection::readRFC1006Header()
 	return data16;
 }
 
-CConnection::TRFC905ServiceHeader CConnection::readRFC905ServiceHeader(qint8 cdtCode, quint8 readOption)
+CConnection::TRFC905ServiceHeader CConnection::readRFC905ServiceHeader(quint8 cdtCode, quint8 readOption)
 {
 	TRFC905ServiceHeader hdr;
 	TRFC905ServiceHeader hdrnull;
@@ -136,7 +136,7 @@ quint32 CConnection::readRFC905VariablePart(quint32 lengthIndicator, QVector<cha
 	quint8 data8;
 
 	quint32 variableBytesRead = 0;
-	while (lengthIndicator > (6 + variableBytesRead))
+	while (lengthIndicator > (7 + variableBytesRead))
 	{
 		// read parameter code
 		*m_pIs >> data8;
@@ -195,7 +195,7 @@ quint32 CConnection::writeRFC1006ServiceHeader(quint32 beginSize)
 	quint16 data16;
 	quint32 variableLength = beginSize;
 
-	*m_pOs << (char)0x03 << (char)0x00;
+	*m_pOs << (quint8)0x03 << (quint8)0x00;
 
 	if (!m_tSelLocal.isEmpty()) variableLength += 2 + m_tSelLocal.size();
 	if (!m_tSelRemote.isEmpty()) variableLength += 2 + m_tSelRemote.size();
@@ -211,7 +211,7 @@ quint32 CConnection::writeRFC1006DataHeader(quint32 size)
 	quint16 data16;
 	quint32 variableLength=3;
 
-	*m_pOs << (char)0x03 << (char)0x00;
+	*m_pOs << (quint8)0x03 << (quint8)0x00;
 
 	if (size) variableLength += 2 + size;
 
@@ -223,7 +223,7 @@ quint32 CConnection::writeRFC1006DataHeader(quint32 size)
 
 quint32 CConnection::writeRFC905DataHeader(quint8 opCode)
 {
-	*m_pOs << (char)0x02 << (char)0xf0 << opCode;
+	*m_pOs << (quint8)0x02 << (quint8)0xf0 << opCode;
 
 	return 3;
 }
@@ -245,7 +245,7 @@ quint32 CConnection::writeRFC905ServiceHeader(quint8 opCode)
 	*m_pOs << data16;
 
 	// write reason - 0x00 corresponds to reason not specified
-	*m_pOs << (char) 0;
+	*m_pOs << (quint8) 0;
 
 	return serviceHdrSize;
 }
@@ -255,22 +255,22 @@ quint32 CConnection::writeRFC905Service(QVector<char>& tSel1, QVector<char>& tSe
 	// write variable part
 	if (!tSel1.isEmpty())
 	{
-		*m_pOs << (char) 0xc2;
+		*m_pOs << (quint8) 0xc2;
 		*m_pOs << tSel1.size();
 		*m_pOs << tSel1;
 	}
 
 	if (!tSel2.isEmpty())
 	{
-		*m_pOs << (char) 0xc1;
+		*m_pOs << (quint8) 0xc1;
 		*m_pOs << tSel2.size();
 		*m_pOs << tSel2;
 	}
 
 	// write proposed max TPDU size
-	*m_pOs << (char) 0xC0;
-	*m_pOs << (char) 1;
-	*m_pOs << m_maxTPDUSizeParam;
+	*m_pOs << (quint8) 0xC0;
+	*m_pOs << (quint8) 1;
+	*m_pOs << (quint8) m_maxTPDUSizeParam;
 
 	return 0;
 }
@@ -279,23 +279,32 @@ quint32 CConnection::writeRFC905Service(QVector<char>& tSel1, QVector<char>& tSe
 void CConnection::listenForCR()
 {
 
-	m_pSocket->getSocket()->waitForReadyRead(m_messageFragmentTimeout);
+	if (m_pSocket->getSocket()->waitForReadyRead(m_messageFragmentTimeout) == false)
+	{
+		emit signalIOError("CConnection::listenForCR: waiting of data timed is out");
+		return;
+	}
 
 	// Read Connect Request (CR)
-	if (!readRFC1006Header()) return;
+	quint16 dataLenght = readRFC1006Header();
+	if (!dataLenght) return;
 
 	TRFC905ServiceHeader hdr = readRFC905ServiceHeader(c_CRCDT, 0);
 	if (!hdr.lengthIndicator) return;
 	m_dstRef = hdr.srcRef;
 
-	if (!readRFC905VariablePart(hdr.lengthIndicator, m_tSelLocal, m_tSelRemote)) return;
+	if (!readRFC905VariablePart(dataLenght-4, m_tSelLocal, m_tSelRemote))
+	{
+		emit signalIOError("CConnection::listenForCR: readRFC905VariablePart has unknown error.");
+		return;
+	}
 
 	// Write Connection Confirm (CC)
 	writeRFC1006ServiceHeader(3);
 	writeRFC905ServiceHeader(c_CCCDT);
 	writeRFC905Service(m_tSelLocal, m_tSelRemote);
 
-	m_pSocket->getSocket()->flush();
+	m_pSocket->getSocket()->waitForBytesWritten(m_messageTimeout);
 
 	emit signalCRReady(this);
 }
@@ -319,15 +328,24 @@ void CConnection::startConnection()
 	writeRFC905ServiceHeader(c_CRCDT);
 	writeRFC905Service(m_tSelRemote, m_tSelLocal);
 
-	// Read connection confirm (CC)
-	if (!readRFC1006Header()) return;
-	TRFC905ServiceHeader shdr = readRFC905ServiceHeader(c_CCCDT, 0);
-	if (!shdr.lengthIndicator) return;
-	m_dstRef = shdr.srcRef;
+	m_pSocket->getSocket()->waitForBytesWritten(m_messageTimeout);
 
-	if (!readRFC905VariablePart(shdr.lengthIndicator, m_tSelRemote, m_tSelLocal)) return;
+	if (m_pSocket->getSocket()->waitForReadyRead(m_messageTimeout) == true)
+	{
+		// Read connection confirm (CC)
+		if (!readRFC1006Header()) return;
+		TRFC905ServiceHeader shdr = readRFC905ServiceHeader(c_CCCDT, 0);
+		if (!shdr.lengthIndicator) return;
+		m_dstRef = shdr.srcRef;
 
-	emit signalConnectionReady(this);
+		if (!readRFC905VariablePart(shdr.lengthIndicator, m_tSelRemote, m_tSelLocal)) return;
+
+		emit signalConnectionReady(this);
+	}
+	else
+	{
+		emit signalIOError("CConnection::startConnection: don't answer for startConnection");
+	}
 
 }
 

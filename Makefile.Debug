@@ -50,7 +50,6 @@ SOURCES       = clienttsap.cpp \
 		tcpeasysocket.cpp debug/moc_clienttsap.cpp \
 		debug/moc_connection.cpp \
 		debug/moc_connectionlistener.cpp \
-		debug/moc_servertsap.cpp \
 		debug/moc_connectionserver.cpp
 OBJECTS       = build/debug/clienttsap.o \
 		build/debug/connection.o \
@@ -62,7 +61,6 @@ OBJECTS       = build/debug/clienttsap.o \
 		build/debug/moc_clienttsap.o \
 		build/debug/moc_connection.o \
 		build/debug/moc_connectionlistener.o \
-		build/debug/moc_servertsap.o \
 		build/debug/moc_connectionserver.o
 DIST          = /usr/lib/x86_64-linux-gnu/qt5/mkspecs/features/spec_pre.prf \
 		/usr/lib/x86_64-linux-gnu/qt5/mkspecs/common/shell-unix.conf \
@@ -195,9 +193,9 @@ check: first
 
 compiler_rcc_make_all:
 compiler_rcc_clean:
-compiler_moc_header_make_all: debug/moc_clienttsap.cpp debug/moc_connection.cpp debug/moc_connectionlistener.cpp debug/moc_servertsap.cpp debug/moc_connectionserver.cpp
+compiler_moc_header_make_all: debug/moc_clienttsap.cpp debug/moc_connection.cpp debug/moc_connectionlistener.cpp debug/moc_connectionserver.cpp
 compiler_moc_header_clean:
-	-$(DEL_FILE) debug/moc_clienttsap.cpp debug/moc_connection.cpp debug/moc_connectionlistener.cpp debug/moc_servertsap.cpp debug/moc_connectionserver.cpp
+	-$(DEL_FILE) debug/moc_clienttsap.cpp debug/moc_connection.cpp debug/moc_connectionlistener.cpp debug/moc_connectionserver.cpp
 debug/moc_clienttsap.cpp: ositransport_global.h \
 		/usr/include/qt5/QtCore/qglobal.h \
 		/usr/include/qt5/QtCore/qconfig.h \
@@ -300,7 +298,6 @@ debug/moc_clienttsap.cpp: ositransport_global.h \
 		socketfactory.h \
 		tcpeasysocket.h \
 		connection.h \
-		clienttsap.h \
 		clienttsap.h
 	/usr/lib/x86_64-linux-gnu/qt5/bin/moc $(DEFINES) $(INCPATH) -I/usr/include/c++/4.8 -I/usr/include/x86_64-linux-gnu/c++/4.8 -I/usr/include/c++/4.8/backward -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include clienttsap.h -o debug/moc_clienttsap.cpp
 
@@ -404,9 +401,6 @@ debug/moc_connection.cpp: ositransport_global.h \
 		/usr/include/qt5/QtCore/qthread.h \
 		/usr/include/qt5/QtCore/qrunnable.h \
 		tcpeasysocket.h \
-		clienttsap.h \
-		socketfactory.h \
-		connection.h \
 		connection.h
 	/usr/lib/x86_64-linux-gnu/qt5/bin/moc $(DEFINES) $(INCPATH) -I/usr/include/c++/4.8 -I/usr/include/x86_64-linux-gnu/c++/4.8 -I/usr/include/c++/4.8/backward -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include connection.h -o debug/moc_connection.cpp
 
@@ -511,118 +505,8 @@ debug/moc_connectionlistener.cpp: ositransport_global.h \
 		/usr/include/qt5/QtCore/qrunnable.h \
 		connection.h \
 		tcpeasysocket.h \
-		clienttsap.h \
-		socketfactory.h \
 		connectionlistener.h
 	/usr/lib/x86_64-linux-gnu/qt5/bin/moc $(DEFINES) $(INCPATH) -I/usr/include/c++/4.8 -I/usr/include/x86_64-linux-gnu/c++/4.8 -I/usr/include/c++/4.8/backward -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include connectionlistener.h -o debug/moc_connectionlistener.cpp
-
-debug/moc_servertsap.cpp: ositransport_global.h \
-		/usr/include/qt5/QtCore/qglobal.h \
-		/usr/include/qt5/QtCore/qconfig.h \
-		/usr/include/qt5/QtCore/qfeatures.h \
-		/usr/include/qt5/QtCore/qsystemdetection.h \
-		/usr/include/qt5/QtCore/qprocessordetection.h \
-		/usr/include/qt5/QtCore/qcompilerdetection.h \
-		/usr/include/qt5/QtCore/qglobalstatic.h \
-		/usr/include/qt5/QtCore/qatomic.h \
-		/usr/include/qt5/QtCore/qbasicatomic.h \
-		/usr/include/qt5/QtCore/qatomic_bootstrap.h \
-		/usr/include/qt5/QtCore/qgenericatomic.h \
-		/usr/include/qt5/QtCore/qatomic_msvc.h \
-		/usr/include/qt5/QtCore/qatomic_integrity.h \
-		/usr/include/qt5/QtCore/qoldbasicatomic.h \
-		/usr/include/qt5/QtCore/qatomic_vxworks.h \
-		/usr/include/qt5/QtCore/qatomic_power.h \
-		/usr/include/qt5/QtCore/qatomic_alpha.h \
-		/usr/include/qt5/QtCore/qatomic_armv7.h \
-		/usr/include/qt5/QtCore/qatomic_armv6.h \
-		/usr/include/qt5/QtCore/qatomic_armv5.h \
-		/usr/include/qt5/QtCore/qatomic_bfin.h \
-		/usr/include/qt5/QtCore/qatomic_ia64.h \
-		/usr/include/qt5/QtCore/qatomic_mips.h \
-		/usr/include/qt5/QtCore/qatomic_s390.h \
-		/usr/include/qt5/QtCore/qatomic_sh4a.h \
-		/usr/include/qt5/QtCore/qatomic_sparc.h \
-		/usr/include/qt5/QtCore/qatomic_gcc.h \
-		/usr/include/qt5/QtCore/qatomic_x86.h \
-		/usr/include/qt5/QtCore/qatomic_cxx11.h \
-		/usr/include/qt5/QtCore/qatomic_unix.h \
-		/usr/include/qt5/QtCore/qmutex.h \
-		/usr/include/qt5/QtCore/qlogging.h \
-		/usr/include/qt5/QtCore/qflags.h \
-		/usr/include/qt5/QtCore/qtypeinfo.h \
-		/usr/include/qt5/QtCore/qtypetraits.h \
-		/usr/include/qt5/QtCore/qsysinfo.h \
-		/usr/include/qt5/QtCore/QObject \
-		/usr/include/qt5/QtCore/qobject.h \
-		/usr/include/qt5/QtCore/qobjectdefs.h \
-		/usr/include/qt5/QtCore/qnamespace.h \
-		/usr/include/qt5/QtCore/qobjectdefs_impl.h \
-		/usr/include/qt5/QtCore/qstring.h \
-		/usr/include/qt5/QtCore/qchar.h \
-		/usr/include/qt5/QtCore/qbytearray.h \
-		/usr/include/qt5/QtCore/qrefcount.h \
-		/usr/include/qt5/QtCore/qarraydata.h \
-		/usr/include/qt5/QtCore/qstringbuilder.h \
-		/usr/include/qt5/QtCore/qlist.h \
-		/usr/include/qt5/QtCore/qalgorithms.h \
-		/usr/include/qt5/QtCore/qiterator.h \
-		/usr/include/qt5/QtCore/qcoreevent.h \
-		/usr/include/qt5/QtCore/qscopedpointer.h \
-		/usr/include/qt5/QtCore/qmetatype.h \
-		/usr/include/qt5/QtCore/qvarlengtharray.h \
-		/usr/include/qt5/QtCore/qcontainerfwd.h \
-		/usr/include/qt5/QtCore/qisenum.h \
-		/usr/include/qt5/QtCore/qobject_impl.h \
-		/usr/include/qt5/QtNetwork/QTcpSocket \
-		/usr/include/qt5/QtNetwork/qtcpsocket.h \
-		/usr/include/qt5/QtNetwork/qabstractsocket.h \
-		/usr/include/qt5/QtCore/qiodevice.h \
-		/usr/include/qt5/QtCore/qdebug.h \
-		/usr/include/qt5/QtCore/qhash.h \
-		/usr/include/qt5/QtCore/qpair.h \
-		/usr/include/qt5/QtCore/qmap.h \
-		/usr/include/qt5/QtCore/qtextstream.h \
-		/usr/include/qt5/QtCore/qlocale.h \
-		/usr/include/qt5/QtCore/qvariant.h \
-		/usr/include/qt5/QtCore/qstringlist.h \
-		/usr/include/qt5/QtCore/qdatastream.h \
-		/usr/include/qt5/QtCore/qregexp.h \
-		/usr/include/qt5/QtCore/qstringmatcher.h \
-		/usr/include/qt5/QtCore/qshareddata.h \
-		/usr/include/qt5/QtCore/qvector.h \
-		/usr/include/qt5/QtCore/qpoint.h \
-		/usr/include/qt5/QtCore/qset.h \
-		/usr/include/qt5/QtCore/qcontiguouscache.h \
-		/usr/include/qt5/QtNetwork/QTcpServer \
-		/usr/include/qt5/QtNetwork/qtcpserver.h \
-		/usr/include/qt5/QtNetwork/qhostaddress.h \
-		/usr/include/qt5/QtNetwork/QHostAddress \
-		/usr/include/qt5/QtCore/QMutex \
-		/usr/include/qt5/QtCore/QDebug \
-		/usr/include/qt5/QtNetwork/QHostInfo \
-		/usr/include/qt5/QtNetwork/qhostinfo.h \
-		/usr/include/qt5/QtCore/QScopedPointer \
-		/usr/include/qt5/QtCore/QLinkedList \
-		/usr/include/qt5/QtCore/qlinkedlist.h \
-		/usr/include/qt5/QtCore/QVector \
-		/usr/include/qt5/QtCore/QDataStream \
-		/usr/include/qt5/QtCore/QSharedPointer \
-		/usr/include/qt5/QtCore/qsharedpointer.h \
-		/usr/include/qt5/QtCore/qsharedpointer_impl.h \
-		/usr/include/qt5/QtCore/QByteArray \
-		/usr/include/qt5/QtCore/QThreadPool \
-		/usr/include/qt5/QtCore/qthreadpool.h \
-		/usr/include/qt5/QtCore/qthread.h \
-		/usr/include/qt5/QtCore/qrunnable.h \
-		connectionlistener.h \
-		connection.h \
-		tcpeasysocket.h \
-		clienttsap.h \
-		socketfactory.h \
-		connectionserver.h \
-		servertsap.h
-	/usr/lib/x86_64-linux-gnu/qt5/bin/moc $(DEFINES) $(INCPATH) -I/usr/include/c++/4.8 -I/usr/include/x86_64-linux-gnu/c++/4.8 -I/usr/include/c++/4.8/backward -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include servertsap.h -o debug/moc_servertsap.cpp
 
 debug/moc_connectionserver.cpp: ositransport_global.h \
 		/usr/include/qt5/QtCore/qglobal.h \
@@ -725,8 +609,6 @@ debug/moc_connectionserver.cpp: ositransport_global.h \
 		/usr/include/qt5/QtCore/qrunnable.h \
 		connection.h \
 		tcpeasysocket.h \
-		clienttsap.h \
-		socketfactory.h \
 		connectionlistener.h \
 		connectionserver.h
 	/usr/lib/x86_64-linux-gnu/qt5/bin/moc $(DEFINES) $(INCPATH) -I/usr/include/c++/4.8 -I/usr/include/x86_64-linux-gnu/c++/4.8 -I/usr/include/c++/4.8/backward -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/4.8/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include connectionserver.h -o debug/moc_connectionserver.cpp
@@ -1054,9 +936,7 @@ build/debug/connectionlistener.o: connectionlistener.cpp connectionlistener.h \
 		/usr/include/qt5/QtCore/qthread.h \
 		/usr/include/qt5/QtCore/qrunnable.h \
 		connection.h \
-		tcpeasysocket.h \
-		clienttsap.h \
-		socketfactory.h
+		tcpeasysocket.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/debug/connectionlistener.o connectionlistener.cpp
 
 build/debug/servertsap.o: servertsap.cpp servertsap.h \
@@ -1162,7 +1042,6 @@ build/debug/servertsap.o: servertsap.cpp servertsap.h \
 		connectionlistener.h \
 		connection.h \
 		tcpeasysocket.h \
-		clienttsap.h \
 		socketfactory.h \
 		connectionserver.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/debug/servertsap.o servertsap.cpp
@@ -1269,8 +1148,6 @@ build/debug/connectionserver.o: connectionserver.cpp connectionserver.h \
 		/usr/include/qt5/QtCore/qrunnable.h \
 		connection.h \
 		tcpeasysocket.h \
-		clienttsap.h \
-		socketfactory.h \
 		connectionlistener.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/debug/connectionserver.o connectionserver.cpp
 
@@ -1375,8 +1252,7 @@ build/debug/socketfactory.o: socketfactory.cpp socketfactory.h \
 		/usr/include/qt5/QtCore/qthread.h \
 		/usr/include/qt5/QtCore/qrunnable.h \
 		tcpeasysocket.h \
-		connection.h \
-		clienttsap.h
+		connection.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/debug/socketfactory.o socketfactory.cpp
 
 build/debug/tcpeasysocket.o: tcpeasysocket.cpp tcpeasysocket.h \
@@ -1489,9 +1365,6 @@ build/debug/moc_connection.o: debug/moc_connection.cpp
 
 build/debug/moc_connectionlistener.o: debug/moc_connectionlistener.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/debug/moc_connectionlistener.o debug/moc_connectionlistener.cpp
-
-build/debug/moc_servertsap.o: debug/moc_servertsap.cpp 
-	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/debug/moc_servertsap.o debug/moc_servertsap.cpp
 
 build/debug/moc_connectionserver.o: debug/moc_connectionserver.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o build/debug/moc_connectionserver.o debug/moc_connectionserver.cpp
