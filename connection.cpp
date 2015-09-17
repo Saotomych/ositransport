@@ -329,16 +329,20 @@ void CConnection::startConnection()
 	writeRFC905Service(m_tSelRemote, m_tSelLocal);
 
 	m_pSocket->getSocket()->waitForBytesWritten(m_messageTimeout);
+	QThread::usleep(1000);
 
 	if (m_pSocket->getSocket()->waitForReadyRead(m_messageTimeout) == true)
 	{
 		// Read connection confirm (CC)
-		if (!readRFC1006Header()) return;
+		quint16 dataLenght = readRFC1006Header();
+		if (!dataLenght) return;
+
 		TRFC905ServiceHeader shdr = readRFC905ServiceHeader(c_CCCDT, 0);
 		if (!shdr.lengthIndicator) return;
+
 		m_dstRef = shdr.srcRef;
 
-		if (!readRFC905VariablePart(shdr.lengthIndicator, m_tSelRemote, m_tSelLocal)) return;
+		if (!readRFC905VariablePart(dataLenght-4, m_tSelRemote, m_tSelLocal)) return;
 
 		emit signalConnectionReady(this);
 	}
