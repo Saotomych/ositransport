@@ -304,7 +304,10 @@ void CConnection::listenForCR()
 	writeRFC905ServiceHeader(c_CCCDT);
 	writeRFC905Service(m_tSelLocal, m_tSelRemote);
 
+	m_pSocket->getSocket()->flush();
 	m_pSocket->getSocket()->waitForBytesWritten(m_messageTimeout);
+
+	connect(m_pSocket->getSocket(), SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
 
 	emit signalCRReady(this);
 }
@@ -328,8 +331,8 @@ void CConnection::startConnection()
 	writeRFC905ServiceHeader(c_CRCDT);
 	writeRFC905Service(m_tSelRemote, m_tSelLocal);
 
+	m_pSocket->getSocket()->flush();
 	m_pSocket->getSocket()->waitForBytesWritten(m_messageTimeout);
-	QThread::usleep(1000);
 
 	if (m_pSocket->getSocket()->waitForReadyRead(m_messageTimeout) == true)
 	{
@@ -344,7 +347,12 @@ void CConnection::startConnection()
 
 		if (!readRFC905VariablePart(dataLenght-4, m_tSelRemote, m_tSelLocal)) return;
 
+		connect(m_pSocket->getSocket(), SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
+
 		emit signalConnectionReady(this);
+
+		connect(m_pSocket->getSocket(), SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
+
 	}
 	else
 	{
@@ -467,7 +475,7 @@ void CConnection::setMessageFragmentTimeout(int messageFragmentTimeout) {
 }
 
 // Emit for Errors may occur into private functions
-void CConnection::receive(QByteArray& tSduBuffer)
+bool CConnection::receive(QByteArray& tSduBuffer)
 {
 
 	quint16 packetLength = 0;
@@ -482,21 +490,21 @@ void CConnection::receive(QByteArray& tSduBuffer)
 	do
 	{
 		packetLength = readRFC1006Header();
-		if (packetLength <= 7) { emit signalIOError("Syntax error: receive packet length parameter < 7."); return; }
+		if (packetLength <= 7) { emit signalIOError("Syntax error: receive packet length parameter < 7."); return false; }
 
 		hdr = readRFC905DataHeader();
-		if (!hdr.lengthIndicator) return;
+		if (!hdr.lengthIndicator) return false;
 
 		eot = 0;
 		if (hdr.pduCode == 0xF0)
 		{
 			*m_pIs >> eot;
-			if ( eot != 0 && eot != 0x80 ) { emit signalIOError("Syntax Error: EOT wrong"); return; }
+			if ( eot != 0 && eot != 0x80 ) { emit signalIOError("Syntax Error: EOT wrong"); return false; }
 
 			if ( (qint64)(packetLength - 7) > (tSduBuffer.size()) )
 			{
 				emit signalIOError("tSduBuffer size is too small to hold the complete TSDU");
-				return;
+				return false;
 			}
 
 			tSduBuffer += m_pSocket->getSocket()->readAll();
@@ -504,38 +512,44 @@ void CConnection::receive(QByteArray& tSduBuffer)
 		}
 		else if (hdr.pduCode == 0x80) // Disconnect Request - DR (ISO RFC-905 ISO DP 8073)
 		{
-			if (hdr.lengthIndicator != 6) { emit signalIOError("Syntax error: LI field does not equal 6."); return; }
+			if (hdr.lengthIndicator != 6) { emit signalIOError("Syntax error: LI field does not equal 6."); return false; }
 
 			*m_pIs >> data16;	// Read DST-REF (Source Reference here)
-			if (data16 != m_srcRef) { emit signalIOError("Syntax error: Source reference wrong."); return; }
+			if (data16 != m_srcRef) { emit signalIOError("Syntax error: Source reference wrong."); return false; }
 
 			*m_pIs >> data16;	// Read SRC-REF (Destination Reference here)
-			if (data16 != m_dstRef) { emit signalIOError("Syntax error: Destination reference wrong."); return; }
+			if (data16 != m_dstRef) { emit signalIOError("Syntax error: Destination reference wrong."); return false; }
 
 			// check the reason field only between 1 and 4 for class 0
 			reason = 0;
 			*m_pIs >> reason;
-			if (reason < 0 || reason > 4) { emit signalIOError("Syntax error: reason out of bound."); return; }
+			if (reason < 0 || reason > 4) { emit signalIOError("Syntax error: reason out of bound."); return false; }
 
 			// Disconnect is valid
-			return;
+			emit signalConnectionClosed(this);
+
+			return false;
 		}
 		else if (hdr.pduCode == 0x70) // Error Message - ER (ISO RFC-905 ISO DP 8073)
 		{
 			emit signalIOError("Got TPDU Error: ER message.");
-			return;
+			return false;
 		}
 		else
 		{
 			emit signalIOError("Syntax Error: unknown TPDU code.");
-			return;
+			return false;
 		}
 
 	}while ( eot != 0x80 || (m_pSocket->getSocket()->waitForReadyRead(m_messageFragmentTimeout) == true) );
 
-	if (!eot)  emit signalIOError("Error: Received last eot error.");
-	else emit signalTSduReady(this);
+	if (!eot)
+	{
+		emit signalIOError("Error: Received last eot error.");
+		return false;
+	}
 
+	return true;
 }
 
 void CConnection::disconnect()
@@ -562,3 +576,8 @@ void CConnection::close()
 	}
 }
 
+void CConnection::slotReadyRead()
+{
+
+	emit signalTSduReady(this);
+}

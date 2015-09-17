@@ -156,8 +156,11 @@ public:
 	 *             tSduBuffer is too small to hold the complete PDU.
 	 * @throws CExTimeout
 	 *             this exception is thrown if the first byte of new message is not received within the message timeout.
+	 * @return bool
+	 * 				is true when TSDU is correct
+	 * 				is false when TSDU has errors
 	 */
-	void receive(QByteArray& tSduBuffer);
+	bool receive(QByteArray& tSduBuffer);
 
 	/**
 	 * This function sends a Disconnect Request but does not wait for a Disconnect Confirm.
@@ -168,6 +171,9 @@ public:
 	 * Will close the TCP connection if its still open and free any resources of this connection.
 	 */
 	void close();
+
+public slots:
+	void slotReadyRead();
 
 signals:
 

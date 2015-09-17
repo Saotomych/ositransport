@@ -17,7 +17,6 @@ CConnectionServer::CConnectionServer(
 {
 	m_pTcpServer = new QTcpServer(this);
 	connect(m_pTcpServer, SIGNAL(newConnection()),this, SLOT(slotServerAcceptConnection()));
-	connect(m_pTcpServer, SIGNAL(acceptError(QAbstractSocket::SocketError socketError)),this, SLOT(slotServerError(QAbstractSocket::SocketError socketError)));
 
 	m_pTcpServer->setMaxPendingConnections(maxConnections);
 
@@ -86,6 +85,8 @@ void CConnectionServer::slotServerAcceptConnection()
 	qDebug() << "CConnectionServer::slotServerAcceptConnection";
 
 	QTcpSocket* qsock = m_pTcpServer->nextPendingConnection();
+	connect(qsock, SIGNAL(error(QAbstractSocket::SocketError)),this, SLOT(slotServerError(QAbstractSocket::SocketError)));
+
 	CTcpEasySocket* mysock = new CTcpEasySocket(qsock);
 	CConnection* pconn = createNewConnection(mysock);
 
