@@ -59,6 +59,7 @@ void CConnectionServer::startServer()
 {
 	if (m_pTcpServer->isListening() == false)
 	{
+		qRegisterMetaType<QAbstractSocket::SocketError>("QAbstractSocket::SocketError");
 
 		m_pTcpServer->listen(QHostAddress::AnyIPv4, m_localPort);
 	}

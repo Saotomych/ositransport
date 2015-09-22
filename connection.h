@@ -15,6 +15,8 @@ private:
 	const quint8 c_CRCDT;
 	const quint8 c_CCCDT;
 
+	const quint32 c_maxTSDUBufferSize;
+
 	quint32 c_connectionNum;
 
 	CTcpEasySocket* m_pSocket;
@@ -34,6 +36,8 @@ private:
 
 	QScopedPointer<QDataStream> m_pOs;
 	QScopedPointer<QDataStream> m_pIs;
+
+	QByteArray m_tSduBuffer;
 
 	explicit CConnection();
 
@@ -111,9 +115,9 @@ public:
 	 * @param lengths
 	 * 			Lengths of buffers
 	 */
-	void send(QLinkedList<QVector<char> > tsdus, QLinkedList<quint32> offsets, QLinkedList<quint32> lengths);
+	void send(QLinkedList<QVector<char> >& tsdus, QLinkedList<quint32>& offsets, QLinkedList<quint32>& lengths);
 
-	void send(QVector<char> tsdu, quint32 offset, quint32 length);
+	void send(QVector<char>& tsdu, quint32 offset, quint32 length);
 
 	/**
 	 * @return messageTimeout

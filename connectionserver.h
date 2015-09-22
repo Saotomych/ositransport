@@ -48,10 +48,6 @@ public: //API
     void startServer();
     void stopServer();
 
-//protected:
-//    virtual void incomingConnection(qintptr handle);
-//    //virtual void incomingConnection(qintptr socketDescriptor);
-
 private slots:
 	void slotServerConnectionClosed(const CConnection* that);
 	void slotServerAcceptConnection();

@@ -12,6 +12,7 @@ CConnection::CConnection(CTcpEasySocket* socket,
 						qint32 messageFragmentTimeout):
 c_CRCDT(0xe0),
 c_CCCDT(0xd0),
+c_maxTSDUBufferSize(65535),
 m_pSocket(socket),
 m_srcRef(0),
 m_dstRef(0),
@@ -362,7 +363,7 @@ void CConnection::startConnection()
 }
 
 // Emit for Errors occurs into private functions
-void CConnection::send(QLinkedList<QVector<char> > tsdus, QLinkedList<quint32> offsets, QLinkedList<quint32> lengths)
+void CConnection::send(QLinkedList<QVector<char> >& tsdus, QLinkedList<quint32>& offsets, QLinkedList<quint32>& lengths)
 {
 
 	m_pSocket->getSocket()->waitForBytesWritten(m_messageTimeout);
@@ -441,7 +442,7 @@ void CConnection::send(QLinkedList<QVector<char> > tsdus, QLinkedList<quint32> o
 }
 
 // Emit for Errors occurs into private functions
-void CConnection::send(QVector<char> tsdu, quint32 offset, quint32 length)
+void CConnection::send(QVector<char>& tsdu, quint32 offset, quint32 length)
 {
 	QLinkedList<QVector<char> > tsdus;
 	tsdus.push_back(tsdu);
@@ -479,18 +480,21 @@ bool CConnection::receive(QByteArray& tSduBuffer)
 {
 
 	quint16 packetLength = 0;
-	quint32 eot = 0;
+	quint16 fullTSduLength = 0;
+	quint8 eot = 0;
 	qint8 reason = 0;
 	quint16 data16 = 0;
 
 	TRFC905DataHeader hdr;
 
-	if (m_pSocket->getSocket()->waitForReadyRead(m_messageTimeout) == false) emit signalIOError("Error: Received no data.");
+	if (m_pSocket->getSocket()->bytesAvailable() == 0) return false;
 
 	do
 	{
 		packetLength = readRFC1006Header();
 		if (packetLength <= 7) { emit signalIOError("Syntax error: receive packet length parameter < 7."); return false; }
+
+		quint16 tsduLength = packetLength-7;
 
 		hdr = readRFC905DataHeader();
 		if (!hdr.lengthIndicator) return false;
@@ -501,13 +505,14 @@ bool CConnection::receive(QByteArray& tSduBuffer)
 			*m_pIs >> eot;
 			if ( eot != 0 && eot != 0x80 ) { emit signalIOError("Syntax Error: EOT wrong"); return false; }
 
-			if ( (qint64)(packetLength - 7) > (tSduBuffer.size()) )
+			if ( (qint64)(tsduLength) > c_maxTSDUBufferSize )
 			{
 				emit signalIOError("tSduBuffer size is too small to hold the complete TSDU");
 				return false;
 			}
 
-			tSduBuffer += m_pSocket->getSocket()->readAll();
+			tSduBuffer += m_pSocket->getSocket()->read(tsduLength);
+			fullTSduLength += tsduLength;
 
 		}
 		else if (hdr.pduCode == 0x80) // Disconnect Request - DR (ISO RFC-905 ISO DP 8073)
@@ -541,7 +546,7 @@ bool CConnection::receive(QByteArray& tSduBuffer)
 			return false;
 		}
 
-	}while ( eot != 0x80 || (m_pSocket->getSocket()->waitForReadyRead(m_messageFragmentTimeout) == true) );
+	}while ( eot != 0x80 && m_pSocket->getSocket()->bytesAvailable() != 0);
 
 	if (!eot)
 	{
