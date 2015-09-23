@@ -3,8 +3,8 @@
 CServerTSAP::CServerTSAP(qint32 _port):
 		m_backlog(0),
 		m_bindAddr(QHostAddress::AnyIPv4),
-		m_conListener(nullptr),
-		m_serverThread(nullptr),
+		m_pConListener(nullptr),
+		m_pServerThread(nullptr),
 		m_maxTPduSizeParam(16),
 		m_maxConnection(100),
 		m_messageTimeout(5000),
@@ -21,8 +21,8 @@ CServerTSAP::CServerTSAP(qint32 _port):
 }
 
 CServerTSAP::CServerTSAP(qint32 _port, qint32 _backlog, QHostAddress _bindAddr):
-		m_conListener(nullptr),
-		m_serverThread(nullptr),
+		m_pConListener(nullptr),
+		m_pServerThread(nullptr),
 		m_maxTPduSizeParam(16),
 		m_maxConnection(100),
 		m_messageTimeout(5000),
@@ -42,8 +42,8 @@ CServerTSAP::CServerTSAP(qint32 _port, qint32 _backlog, QHostAddress _bindAddr):
 
 CServerTSAP::CServerTSAP(qint32 port, qint32 backlog, QHostAddress bindAddr,
 		CSocketFactory* serverSocketFactory):
-		m_conListener(nullptr),
-		m_serverThread(nullptr),
+		m_pConListener(nullptr),
+		m_pServerThread(nullptr),
 		m_maxTPduSizeParam(16),
 		m_maxConnection(100),
 		m_messageTimeout(60000),
@@ -62,8 +62,8 @@ CServerTSAP::CServerTSAP(qint32 port, qint32 backlog, QHostAddress bindAddr,
 
 void CServerTSAP::startListening()
 {
-	if (m_serverThread != nullptr)
-		m_serverThread->startServer();
+	if (m_pServerThread != nullptr)
+		m_pServerThread->startServer();
 }
 
 CConnectionListener* CServerTSAP::createServer()
@@ -100,25 +100,25 @@ CConnectionListener* CServerTSAP::createServer()
 		qDebug() << "CServerTSAP::startListening(): Unknown exception";
 	}
 
-	m_conListener = clistener;
-	m_serverThread = cst;
+	m_pConListener = clistener;
+	m_pServerThread = cst;
 
-	return m_conListener;
+	return m_pConListener;
 }
 
 void CServerTSAP::stopListening()
 {
-	if (m_serverThread != nullptr)
+	if (m_pServerThread != nullptr)
 	{
-		m_serverThread->stopServer();
-		delete m_serverThread;
-		m_serverThread = nullptr;
+		m_pServerThread->stopServer();
+		delete m_pServerThread;
+		m_pServerThread = nullptr;
 	}
 
-	if (m_conListener != nullptr)
+	if (m_pConListener != nullptr)
 	{
-		delete m_conListener;
-		m_conListener = nullptr;
+		delete m_pConListener;
+		m_pConListener = nullptr;
 	}
 }
 

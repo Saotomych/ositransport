@@ -7,7 +7,7 @@
 
 #include "socketfactory.h"
 
-CSocketFactory* CSocketFactory::s_inst = nullptr;
+CSocketFactory* CSocketFactory::s_pInst = nullptr;
 
 QMutex CSocketFactory::s_mut;
 

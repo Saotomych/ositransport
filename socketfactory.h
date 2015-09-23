@@ -23,7 +23,7 @@ private:
 	CSocketFactory(const CSocketFactory& that): connect_tout(30000) { *this = that; }
 	CSocketFactory& operator=(const CSocketFactory& that){ *this = that; return *this;}
 
-	static CSocketFactory* s_inst;
+	static CSocketFactory* s_pInst;
 	static QMutex s_mut;
 
 	quint32 connect_tout;
@@ -33,11 +33,11 @@ public:
 	{
 		s_mut.lock();
 
-		if (s_inst == nullptr)
+		if (s_pInst == nullptr)
 		{
 			try
 			{
-				s_inst = new CSocketFactory();
+				s_pInst = new CSocketFactory();
 			}
 
 			catch (std::bad_alloc& ex)
@@ -49,7 +49,7 @@ public:
 
 		s_mut.unlock();
 
-		return s_inst;
+		return s_pInst;
 	}
 
 	void setConnectTimeout(int tout);
