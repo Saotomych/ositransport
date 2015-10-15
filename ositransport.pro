@@ -39,7 +39,7 @@ unix {
     CONFIG (debug, debug|release) {
         TARGET = $$qtLibraryTarget(ositransportd)
     }else{
-        TARGET = ositransport
+        TARGET = $$qtLibraryTarget(ositransport)
     }
     target.path = /usr/lib
     INSTALLS += target
