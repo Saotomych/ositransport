@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += network testlib
+QT       += network
 
 QT       -= gui
 
@@ -38,22 +38,24 @@ HEADERS += ositransport_global.h \
 unix {
     CONFIG (debug, debug|release) {
         TARGET = $$qtLibraryTarget(ositransportd)
+	    OBJECTS_DIR = build/debug
+	    DEFINES += DEBUG
+		LIBS += -lgcov
+
+	    QMAKE_CXXFLAGS_RELEASE -= -O
+		QMAKE_CXXFLAGS_RELEASE -= -O1
+		QMAKE_CXXFLAGS_RELEASE -= -O2
+		QMAKE_CXXFLAGS += -O0 -fprofile-arcs -ftest-coverage
     }else{
         TARGET = $$qtLibraryTarget(ositransport)
+        OBJECTS_DIR = build/release
     }
     target.path = /usr/lib
     INSTALLS += target
 }else{
-    TARGET = $$qtLibraryTarget(ositransport)
+    TARGET = $$qtLibraryTarget(ositransport-notunix)
 }
 
 CONFIG += debug_and_release build_all
 INCLUDEPATH += include/ositransport
-
-CONFIG (debug, debug|release){
-    OBJECTS_DIR = build/debug
-    DEFINES += DEBUG
-} else {
-    OBJECTS_DIR = build/release
-}
 
