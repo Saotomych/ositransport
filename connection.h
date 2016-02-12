@@ -78,8 +78,8 @@ private:
 
 public:
 
-	CConnection(CTcpEasySocket* socket, quint32 maxTPduSizeParam, qint32 m_messageTimeout,
-				qint32 m_messageFragmentTimeout);
+	CConnection(CTcpEasySocket* socket, quint32 maxTPduSizeParam, qint32 messageTimeout,
+				qint32 messageFragmentTimeout);
 
 //	CConnection(const CConnection& other);
 
@@ -127,7 +127,8 @@ public:
 	/**
 	* Set the TConnection timeout for waiting for the first byte of a new message. Default is 0 (unlimited)
 	*
-	* @param messageTimeout
+	* @param messageTimeout#include "socketfactory.h"
+	*
 	*            in milliseconds
 	*/
 	void setMessageTimeout(int messageTimeout);

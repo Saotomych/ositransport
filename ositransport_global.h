@@ -12,7 +12,6 @@
 #include <QScopedPointer>
 #include <QLinkedList>
 #include <QVector>
-#include <QDebug>
 #include <QDataStream>
 #include <QSharedPointer>
 #include <QByteArray>

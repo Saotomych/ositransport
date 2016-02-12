@@ -20,7 +20,7 @@ class OSITRANSPORTSHARED_EXPORT CSocketFactory
 {
 private:
 	CSocketFactory(): connect_tout(30000) {}
-	CSocketFactory(const CSocketFactory& that): connect_tout(30000) { *this = that; }
+	CSocketFactory(const CSocketFactory& that): connect_tout(that.connect_tout) { *this = that; }
 	CSocketFactory& operator=(const CSocketFactory& that){ *this = that; return *this;}
 
 	static CSocketFactory* s_pInst;
@@ -54,6 +54,7 @@ public:
 
 	void setConnectTimeout(int tout);
 
+	// TODO: Remake createSocket as eventual model
 	CTcpEasySocket* createSocket();
 	CTcpEasySocket* createSocket(QString host, quint16 port);
 	CTcpEasySocket* createSocket(QHostAddress host, quint16 port);

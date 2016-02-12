@@ -5,7 +5,6 @@
 #include "connectionlistener.h"
 #include "socketfactory.h"
 #include "connectionserver.h"
-#include "socketfactory.h"
 
 class OSITRANSPORTSHARED_EXPORT CServerTSAP
 {
@@ -73,7 +72,8 @@ public:
 	 */
     void startListening();
 
-	/**
+	/**#include <QDebug>
+	 *
 	 * Create environment for a new thread that listens on the configured port. This method is
 	 * non-blocking.
 	 *
