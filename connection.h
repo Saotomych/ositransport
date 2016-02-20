@@ -23,8 +23,8 @@ private:
 	static qint32 s_connectionCounter;
 	static QMutex s_mutexConCounter;
 
-	QVector<char> m_tSelRemote;
-	QVector<char> m_tSelLocal;
+	QByteArray m_tSelRemote;
+	QByteArray m_tSelLocal;
 
 	qint32 m_srcRef;
 	qint32 m_dstRef;
@@ -67,14 +67,14 @@ private:
 	quint16 readRFC1006Header();	// Call on start of receiving. Return Packet Length.
 	TRFC905ServiceHeader readRFC905ServiceHeader(quint8 cdtCode, quint8 readClass);	// Return RFC905 header as struct.
 	TRFC905DataHeader readRFC905DataHeader();
-	quint32 readRFC905VariablePart(quint32 lengthIndicator, QVector<char>& tSel1, QVector<char>& tSel2);
-	quint32 readUserDataBlock(QVector<char>& tSel);
+	quint32 readRFC905VariablePart(quint32 lengthIndicator, QByteArray& tSel1, QByteArray& tSel2);
+	quint32 readUserDataBlock(QByteArray& tSel);
 
 	quint32 writeRFC1006ServiceHeader(quint32 beginSize);
 	quint32 writeRFC1006DataHeader(quint32 size);
 	quint32 writeRFC905DataHeader(quint8 cdtCode);
 	quint32 writeRFC905ServiceHeader(quint8 cdtCode);
-	quint32 writeRFC905Service(QVector<char>& tSel1, QVector<char>& tSel2);
+	quint32 writeRFC905Service(QByteArray& tSel1, QByteArray& tSel2);
 
 public:
 
@@ -85,9 +85,9 @@ public:
 
 	virtual ~CConnection();
 
-	void setSelRemote(QVector<char>& tSelRemote);
+	void setSelRemote(QByteArray& tSelRemote);
 
-	void setSelLocal(QVector<char>& tSelLocal);
+	void setSelLocal(QByteArray& tSelLocal);
 
 	/**
 	 * This function is called once a client has connected to the server. It listens for a Connection Request (CR). If
@@ -115,9 +115,9 @@ public:
 	 * @param lengths
 	 * 			Lengths of buffers
 	 */
-	void send(QLinkedList<QVector<char> >& tsdus, QLinkedList<quint32>& offsets, QLinkedList<quint32>& lengths);
+	void send(QLinkedList<QByteArray >& tsdus, QLinkedList<quint32>& offsets, QLinkedList<quint32>& lengths);
 
-	void send(QVector<char>& tsdu, quint32 offset, quint32 length);
+	void send(QByteArray& tsdu, quint32 offset, quint32 length);
 
 	/**
 	 * @return messageTimeout

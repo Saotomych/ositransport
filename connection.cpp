@@ -46,12 +46,12 @@ CConnection::~CConnection()
 
 }
 
-void CConnection::setSelRemote(QVector<char>& tSelRemote)
+void CConnection::setSelRemote(QByteArray& tSelRemote)
 {
 	m_tSelRemote = tSelRemote;
 }
 
-void CConnection::setSelLocal(QVector<char>& tSelLocal)
+void CConnection::setSelLocal(QByteArray& tSelLocal)
 {
 	m_tSelLocal = tSelLocal;
 }
@@ -107,7 +107,7 @@ CConnection::TRFC905DataHeader CConnection::readRFC905DataHeader()
 	return hdr;
 }
 
-quint32 CConnection::readUserDataBlock(QVector<char>& tSel)
+quint32 CConnection::readUserDataBlock(QByteArray& tSel)
 {
 	quint8 data8;
 	*m_pIs >> data8;
@@ -115,7 +115,7 @@ quint32 CConnection::readUserDataBlock(QVector<char>& tSel)
 	if (tSel.isEmpty())
 	{
 		tSel.resize(parameterLength);
-		m_pIs->readRawData(&tSel[0], parameterLength);
+		m_pIs->readRawData(tSel.data(), parameterLength);
 	}
 	else
 	{
@@ -132,7 +132,7 @@ quint32 CConnection::readUserDataBlock(QVector<char>& tSel)
 	return parameterLength;
 }
 
-quint32 CConnection::readRFC905VariablePart(quint32 lengthIndicator, QVector<char>& tSel1, QVector<char>& tSel2)
+quint32 CConnection::readRFC905VariablePart(quint32 lengthIndicator, QByteArray& tSel1, QByteArray& tSel2)
 {
 	quint8 data8;
 
@@ -251,7 +251,7 @@ quint32 CConnection::writeRFC905ServiceHeader(quint8 opCode)
 	return serviceHdrSize;
 }
 
-quint32 CConnection::writeRFC905Service(QVector<char>& tSel1, QVector<char>& tSel2)
+quint32 CConnection::writeRFC905Service(QByteArray& tSel1, QByteArray& tSel2)
 {
 	// write variable part
 	if (!tSel1.isEmpty())
@@ -363,7 +363,7 @@ void CConnection::startConnection()
 }
 
 // Emit for Errors occurs into private functions
-void CConnection::send(QLinkedList<QVector<char> >& tsdus, QLinkedList<quint32>& offsets, QLinkedList<quint32>& lengths)
+void CConnection::send(QLinkedList<QByteArray >& tsdus, QLinkedList<quint32>& offsets, QLinkedList<quint32>& lengths)
 {
 
 	m_pSocket->getSocket()->waitForBytesWritten(m_messageTimeout);
@@ -399,7 +399,7 @@ void CConnection::send(QLinkedList<QVector<char> >& tsdus, QLinkedList<quint32>&
 		while (numBytesToWrite)
 		{
 
-			QVector<char>& tsdu = *it_tsdu;
+			QByteArray& tsdu = *it_tsdu;
 			quint32 len = *it_len;
 			quint32 offset = *it_offset;
 
@@ -407,7 +407,7 @@ void CConnection::send(QLinkedList<QVector<char> >& tsdus, QLinkedList<quint32>&
 
 			if (numBytesToWrite > tsduWrLen)
 			{
-				m_pOs->writeRawData(&tsdu[tsduOffset+offset], tsduWrLen);
+				m_pOs->writeRawData(&tsdu.data()[tsduOffset+offset], tsduWrLen);
 				numBytesToWrite -= tsduWrLen;
 				tsduOffset = 0;
 
@@ -417,7 +417,7 @@ void CConnection::send(QLinkedList<QVector<char> >& tsdus, QLinkedList<quint32>&
 			}
 			else
 			{
-				m_pOs->writeRawData(&tsdu[tsduOffset+offset], numBytesToWrite);
+				m_pOs->writeRawData(&tsdu.data()[tsduOffset+offset], numBytesToWrite);
 				if (numBytesToWrite == tsduWrLen)
 				{
 					tsduOffset = 0;
@@ -442,9 +442,9 @@ void CConnection::send(QLinkedList<QVector<char> >& tsdus, QLinkedList<quint32>&
 }
 
 // Emit for Errors occurs into private functions
-void CConnection::send(QVector<char>& tsdu, quint32 offset, quint32 length)
+void CConnection::send(QByteArray& tsdu, quint32 offset, quint32 length)
 {
-	QLinkedList<QVector<char> > tsdus;
+	QLinkedList<QByteArray > tsdus;
 	tsdus.push_back(tsdu);
 
 	QLinkedList<quint32> offsets;

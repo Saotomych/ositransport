@@ -17,8 +17,8 @@ private:
 	quint32 m_messageFragmentTimeout;
 	quint32 m_maxTPDUSizeParam;
 
-	QVector<char> m_tSelRemote;
-	QVector<char> m_tSelLocal;
+	QByteArray m_tSelRemote;
+	QByteArray m_tSelLocal;
 
     CClientTSAP();
 
