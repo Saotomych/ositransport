@@ -1,0 +1,195 @@
+Примеры TODO
+[TODO:nbd]
+to do for nobody
+[TODO:aav]
+to do for alexey aleshkin
+
+* Описание работы транспортного уровня протокола MMS over TCP/IP
+
+  Порядок обмена на транспортном уровне стандартизирован.
+  Стандарт ISO Transport Protocol Specification ISO DP 8073
+
+* Описание реализации транспортного уровня протокола MMS over TCP/IP
+
+** Краткая характеристика классов
+
+   Данная реализация построена с использованием QT и предоставляет
+   возможности работы как клиентом, так и сервером с множественными
+   подключениями.
+
+   Класс CConnection (connection.h / connection.cpp) реализует
+   8073-подключение с использованием прокси-класса CTcpEasySocket
+   (tcpeasysocket.h / tcpeasysocket.cpp).
+
+   CTcpEasySocket инкапсулирует доступ к QTcpSocket и ведет лог
+   проходящих сырых данных.
+   [TODO:nbd] Реализовать логирование сырых 8073-данных в файл. Имя
+   файла для каждого запуска должно быть уникальным и содержать время
+   запуска (час.минуты.секунды)
+   Каждая строка файла должна содержать дату и время записи этой строки.
+   Данные должны быть отображены в hex формате, не более 8 байт на
+   строку и сопровождаться строкой ASCII.
+
+   CSocketFactory (socketfactory.h / socketfactory.cpp) создает новый
+   CTcpEasySocket.
+
+   CServerTSap (servertsap.h / servertsap.cpp) реализует LISTEN сокет,
+   создание нового LISTEN сокета при подключении к предыдущему.
+
+   CClientTSap (clienttsap.h / clienttsap.cpp) реализует подключение
+   клиента к серверу, обмен данными с сервером.
+
+   CConnectionListener (connectionlistener.h / connectionlistener.cpp)
+   проксирует сигналы от серверных соединений пользователю сервера.
+
+** Взаимодействие классов
+
+   Классы взаимодействуют между собой с некоторыми различиями в
+   зависимости от того клиент или сервер инстанцируется пользователем
+   библиотеки.
+
+*** Взаимодействие пользователя с клиентом
+
+    Пользователь-клиент должен подписаться на 7 сигналов 4 сигнала рабочих
+    и 3 сигнала ошибки. Сначала надо подписаться на сигналы ошибки от
+    объекта класса CClientTSap:
+    1 signalIllegalArgument(QString)
+    2 signalConnectError(QString)
+    3 signalIllegalClassMember(QString)
+
+    После создания объекта соединения, подписаться на его сигналы.
+    1 signalConnectionReady(const CConnection*))
+    2 signalConnectionClosed(const CConnection*))
+    3 signalTSduReady(const CConnection*))
+    4 signalIOError(QString))
+
+    Соединение - это объект класса Connection, который подписывается на
+    сигнал readyRead от QTcpSocket самостоятельно при создании. Он
+    проксирует этот сигнал на signalTSduReady.
+
+    После получения сигнала signalConnectionClosed, бесполезно
+    записывать или читать соединение, но можно запрашивать его
+    параметры.
+
+*** Пример создания клиента
+
+#+BEGIN_SRC
+
+	// Create client and start connection
+	CClientTSAP* pClient = new CClientTSAP(*CSocketFactory::getSocketFactory());
+
+	// client's error slots
+	connect(pClient, SIGNAL(signalIllegalArgument(QString)), pTest, SLOT(slotIllegalArgument(QString)));
+	connect(pClient, SIGNAL(signalConnectError(QString)), pTest, SLOT(slotConnectError(QString)));
+	connect(pClient, SIGNAL(signalIllegalClassMember(QString)), pTest, SLOT(slotIllegalClassMember(QString)));
+
+	pClient->setMaxTPDUSizeParam(7);
+	pClient->setMessageTimeout(5000);
+	pClient->setMessageFragmentTimeout(5000);
+
+	QHostAddress address("127.0.0.1");
+	qint32 port = 18982;
+
+	pConnection = pClient->createConnection(address, port);
+
+	// connection slots
+	connect(pConnection, SIGNAL(signalConnectionReady(const CConnection*)), pTest, SLOT(slotConnectionReady(const CConnection*)));
+	connect(pConnection, SIGNAL(signalConnectionClosed(const CConnection*)), pTest, SLOT(slotConnectionClosed(const CConnection*)));
+	connect(pConnection, SIGNAL(signalTSduReady(const CConnection*)), pTest, SLOT(slotClientTSduReady(const CConnection*)));
+	connect(pConnection, SIGNAL(signalIOError(QString)), pTest, SLOT(slotClientIOError(QString)));
+
+	pConnection->startConnection();
+
+#+END_SRC
+
+*** Взаимодействие пользователя с сервером
+
+    Пользователь-сервер после создания сервера получает объект класса
+    CConnectionListener, на сигналы которого должен подписаться.
+    1 signalConnected(const CConnection*)
+    2 signalDisconnected(const CConnection*)
+    3 signalTSduReady(const CConnection*)
+    4 signalCRReady(const CConnection*)
+    5 signalIOError(QString)
+
+    Записывать данные в соединение и принимать данные из соединения
+    cервер может аналогично клиенту.
+
+*** Пример создания сервера
+
+#+BEGIN_SRC
+    quint16 port = 18982;
+	pServer = new CServerTSAP(port);
+	pServer->setMessageTimeout(500);
+	pServer->setMessageFragmentTimeout(500);
+	pConnectionListener = pServer->createServer();
+
+	// server slots
+	connect(pConnectionListener, SIGNAL(signalConnected(const CConnection*)), pTest, SLOT(slotServerClientConnected(const CConnection*)));
+	connect(pConnectionListener, SIGNAL(signalDisconnected(const CConnection*)), pTest, SLOT(slotServerClientDisconnected(const CConnection*)));
+	connect(pConnectionListener, SIGNAL(signalTSduReady(const CConnection*)), pTest, SLOT(slotServerTSduReady(const CConnection*)));
+	connect(pConnectionListener, SIGNAL(signalCRReady(const CConnection*)), pTest, SLOT(slotServerCRReady(const CConnection*)));
+	connect(pConnectionListener, SIGNAL(signalIOError(QString)), pTest, SLOT(slotServerIOError(QString)));
+
+	pServer->startListening();
+#+END_SRC
+
+*** Внутреннее взаимодействие классов
+
+    При создании объекта класса СConnectionServer создается QTcpServer, к
+    сигналу newConnection() которого подключается
+    slotServerAcceptConnection.
+
+    Во время вызова slotServerAcceptConnection создается новый
+    QTcpSocket, и его сигнал error(QAbstractSocket::SocketError)
+    подключается к slotServerError.
+
+    Процесс подключения, позитивный сценарий
+#+BEGIN_SRC
+    CConnectionServer()
+    {
+        --creating-->
+        QTcpServer
+        QTcpServer::newConnection() --connect--> CConnectionServer::slotServerAcceptConnection()
+    }
+
+    QTcpServer::newConnection() --signal--> CConnectionServer::slotServerAcceptConnection()
+    {
+        --creating--> QTcpSocket
+        QTcpSocket::error(QAbstractSocket::SocketError) --connect-->
+        CConnectionServer::slotServerError(QAbstractSocket::SocketError)
+
+        --creating--> CConnection( CTcpEasySocket( QTcpSocket) )
+        QTcpSocket::readyRead() --connect--> CConnection::slotReadyRead()
+        CConnection::signalConnectionClosed(const CConnection*) --connect--> CConnectionServer::slotServerConnectionClosed(const CConnection*)
+        CConnectionServer::signalClientConnected(const CConnection*) --connect--> CConnectionListener::slotClientConnected(const CConnection*)
+        CConnectionServer::signalClientDisconnected(const CConnection*) --connect--> CConnectionListener::slotClientDisconnected(const CConnection*)
+        CConnection::signalCRReady(const CConnection*) --connect-> CConnectionListener::slotCRReady(const CConnection*)
+        CConnection::signalTSduReady(const CConnection*) --connect--> CConnectionListener::slotTSduReady(const CConnection*)
+        signalIOError(QString) --connect--> CConnectionListener::slotIOError(QString)
+        CConnectionServer::signalClientConnected(CConnection) --signal-->
+    }
+
+    CConnectionServer::signalClientConnected(CConnection) --signal--> CConnectionListener::slotClientConnected(const CConnection*)
+    {
+        CConnectionListener::signalConnected(const CConnection*)
+    }
+
+    CConnection::signalCRReady(const CConnection*) --signal--> CConnectionListener::slotCRReady(const CConnection*)
+    {
+        CConnectionListener::signalCRReady(const CConnection*)
+    }
+#+END_SRC
+
+    Прием данных сервером, позитивный сценарий
+#+BEGIN_SRC
+    QTcpSocket::readyRead() --signal--> CConnection::slotReadyRead()
+    {
+        CConnection::signalTSduReady() --signal-->
+    }
+
+    CConnection::signalTSduReady(const CConnection*) --signal--> CConnectionListener::slotTSduReady(const CConnection*)
+    {
+        CConnectionListener::signalTSduReady(const CConnection*) --signal-->
+    }
+#+END_SRC

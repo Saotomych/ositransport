@@ -50,9 +50,16 @@ CConnection* CConnectionServer::createNewConnection(CTcpEasySocket* tcpSocket)
 
 	catch (std::bad_alloc& ex)
 	{
-		qDebug() << ex.what();
+		qDebug() << "CConnectionServer::createNewAssociation: " << ex.what();
 		throw;
 	}
+
+	catch (std::exception& ex)
+	{
+		qDebug() << "CConnectionServer::createNewAssociation: " << ex.what();
+		throw;
+	}
+
 }
 
 void CConnectionServer::startServer()

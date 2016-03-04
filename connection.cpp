@@ -351,9 +351,6 @@ void CConnection::startConnection()
 		connect(m_pSocket->getSocket(), SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
 
 		emit signalConnectionReady(this);
-
-		connect(m_pSocket->getSocket(), SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
-
 	}
 	else
 	{

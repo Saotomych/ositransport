@@ -28,7 +28,12 @@ void CClientTSAP::setMessageFragmentTimeout(int messageFragmentTimeout)
 
 void CClientTSAP::setMaxTPDUSizeParam(int maxTPduSizeParam)
 {
-	if (maxTPduSizeParam < 7 || maxTPduSizeParam > 16) { emit signalIllegalArgument("CClientTSAP::setMaxTPDUSizeParam: parameter Is out of bound"); return; }
+	if (maxTPduSizeParam < 7 || maxTPduSizeParam > 16) {
+
+		emit signalIllegalArgument("CClientTSAP::setMaxTPDUSizeParam: parameter Is out of bound");
+
+		return;
+	}
 
 	m_maxTPDUSizeParam = maxTPduSizeParam;
 }
