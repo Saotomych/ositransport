@@ -46,8 +46,8 @@ CServerTSAP::CServerTSAP(qint32 port, qint32 backlog, QHostAddress bindAddr,
 		m_pServerThread(nullptr),
 		m_maxTPduSizeParam(16),
 		m_maxConnection(100),
-		m_messageTimeout(60000),
-		m_messageFragmentTimeout(60000)
+		m_messageTimeout(5000),
+		m_messageFragmentTimeout(5000)
 {
 	if (port < 1 || port > 65535) {
 		throw std::invalid_argument("port number is out of bound");

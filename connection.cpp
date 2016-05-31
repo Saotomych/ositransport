@@ -56,66 +56,66 @@ void CConnection::setSelLocal(QByteArray& tSelLocal)
 	m_tSelLocal = tSelLocal;
 }
 
-quint16 CConnection::readRFC1006Header()
+quint16 CConnection::readRFC1006Header(QDataStream& iStream)
 {
 	quint8 data8 = 0;
 	quint16 data16 = 0;
 
-	*m_pIs >> data8;
+	iStream >> data8;
 	if (data8 != 0x03) { emit signalIOError("Error: RFC 1006 version failed!"); return 0; }
 
-	*m_pIs >> data8;
+	iStream >> data8;
 	if (data8 != 0x00) { emit signalIOError("Error: RFC 1006 reserved byte failed!");  return 0; }
 
 	// read packet length
-	*m_pIs >> data16;
+	iStream >> data16;
 
 	return data16;
 }
 
-CConnection::TRFC905ServiceHeader CConnection::readRFC905ServiceHeader(quint8 cdtCode, quint8 readOption)
+CConnection::TRFC905ServiceHeader CConnection::readRFC905ServiceHeader(QDataStream& iStream, quint8 cdtCode, quint8 readOption)
 {
 	TRFC905ServiceHeader hdr;
 	TRFC905ServiceHeader hdrnull;
 
-	*m_pIs >> hdr.lengthIndicator;
+	iStream >> hdr.lengthIndicator;
 	if (hdr.lengthIndicator != 6) { emit signalIOError("Error: RFC 905 length indicator not equal 6!"); return hdrnull; }
 
-	*m_pIs >> hdr.CRCDT;
+	iStream >> hdr.CRCDT;
 	if (hdr.CRCDT != cdtCode) { emit signalIOError("Error: RFC 905 CR-code failed!");  return hdrnull; }
 
-	*m_pIs >> hdr.dstRef;
-	*m_pIs >> hdr.srcRef;
+	iStream >> hdr.dstRef;
+	iStream >> hdr.srcRef;
 
 	// Read class
-	*m_pIs >> hdr.option;
+	iStream >> hdr.option;
 	if (hdr.option != readOption) { emit signalIOError("Error: Read option RFC905 failed!"); return hdrnull; }
 
 	return hdr;
 }
 
-CConnection::TRFC905DataHeader CConnection::readRFC905DataHeader()
+CConnection::TRFC905DataHeader CConnection::readRFC905DataHeader(QDataStream& iStream)
 {
 	TRFC905DataHeader hdr;
 	TRFC905DataHeader hdrnull;
 
-	*m_pIs >> hdr.lengthIndicator;
+	iStream >> hdr.lengthIndicator;
 	if (hdr.lengthIndicator != 2) { emit signalIOError("Error: RFC 905 length indicator not equal 2!"); return hdrnull; }
 
-	*m_pIs >> hdr.pduCode;
+	iStream >> hdr.pduCode;
 
 	return hdr;
 }
 
-quint32 CConnection::readUserDataBlock(QByteArray& tSel)
+quint32 CConnection::readUserDataBlock(QDataStream& iStream, QByteArray& tSel)
 {
 	quint8 data8;
-	*m_pIs >> data8;
+	iStream >> data8;
 	qint32 parameterLength = data8;
 	if (tSel.isEmpty())
 	{
 		tSel.resize(parameterLength);
-		m_pIs->readRawData(tSel.data(), parameterLength);
+		iStream.readRawData(tSel.data(), parameterLength);
 	}
 	else
 	{
@@ -123,7 +123,7 @@ quint32 CConnection::readUserDataBlock(QByteArray& tSel)
 
 		for (qint32 i = 0; i < parameterLength; ++i)
 		{
-			*m_pIs >> data8;
+			iStream >> data8;
 			if (data8 != tSel[i]) { emit signalIOError("Error: Local T-Selector is wrong!"); return 0; }
 		}
 
@@ -132,7 +132,7 @@ quint32 CConnection::readUserDataBlock(QByteArray& tSel)
 	return parameterLength;
 }
 
-quint32 CConnection::readRFC905VariablePart(quint32 lengthIndicator, QByteArray& tSel1, QByteArray& tSel2)
+quint32 CConnection::readRFC905VariablePart(QDataStream& iStream, quint32 lengthIndicator, QByteArray& tSel1, QByteArray& tSel2)
 {
 	quint8 data8;
 
@@ -140,12 +140,12 @@ quint32 CConnection::readRFC905VariablePart(quint32 lengthIndicator, QByteArray&
 	while (lengthIndicator > (7 + variableBytesRead))
 	{
 		// read parameter code
-		*m_pIs >> data8;
+		iStream >> data8;
 		switch (data8)
 		{
 		case 0xC2:
 			{
-				quint32 len = readUserDataBlock(tSel1);
+				quint32 len = readUserDataBlock(iStream, tSel1);
 				if (!len) return 0;
 				variableBytesRead += 2 + len;
 			}
@@ -153,17 +153,17 @@ quint32 CConnection::readRFC905VariablePart(quint32 lengthIndicator, QByteArray&
 
 		case 0xC1:
 			{
-				quint32 len = readUserDataBlock(tSel2);
+				quint32 len = readUserDataBlock(iStream, tSel2);
 				if (!len) return 0;
 				variableBytesRead += 2 + len;
 			}
 			break;
 		case 0xC0:
 			{
-				*m_pIs >> data8;
+				iStream >> data8;
 				if (data8 != 1) { emit signalIOError("Error: CConnection::listenForCR: case 0xC0!"); return 0; }
 
-				*m_pIs >> data8;
+				iStream >> data8;
 				quint8 newMaxTPDUSizeParam = data8;
 				if (newMaxTPDUSizeParam < 7 || newMaxTPDUSizeParam > 16)
 				{
@@ -276,6 +276,19 @@ quint32 CConnection::writeRFC905Service(QByteArray& tSel1, QByteArray& tSel2)
 	return 0;
 }
 
+
+QScopedPointer<QDataStream>& CConnection::waitData()
+{
+
+	if (m_pSocket->getSocket()->waitForReadyRead(m_messageFragmentTimeout) == false)
+	{
+		emit signalIOError("CConnection::listenForCR: waiting of data timed is out");
+	}
+
+	return m_pIs;
+}
+
+
 // Emit for Errors occurs into private functions
 void CConnection::listenForCR()
 {
@@ -287,14 +300,14 @@ void CConnection::listenForCR()
 	}
 
 	// Read Connect Request (CR)
-	quint16 dataLenght = readRFC1006Header();
+	quint16 dataLenght = readRFC1006Header(*m_pIs);
 	if (!dataLenght) return;
 
-	TRFC905ServiceHeader hdr = readRFC905ServiceHeader(c_CRCDT, 0);
+	TRFC905ServiceHeader hdr = readRFC905ServiceHeader(*m_pIs, c_CRCDT, 0);
 	if (!hdr.lengthIndicator) return;
 	m_dstRef = hdr.srcRef;
 
-	if (!readRFC905VariablePart(dataLenght-4, m_tSelLocal, m_tSelRemote))
+	if (!readRFC905VariablePart(*m_pIs, dataLenght-4, m_tSelLocal, m_tSelRemote))
 	{
 		emit signalIOError("CConnection::listenForCR: readRFC905VariablePart has unknown error.");
 		return;
@@ -338,15 +351,15 @@ void CConnection::startConnection()
 	if (m_pSocket->getSocket()->waitForReadyRead(m_messageTimeout) == true)
 	{
 		// Read connection confirm (CC)
-		quint16 dataLenght = readRFC1006Header();
+		quint16 dataLenght = readRFC1006Header(*m_pIs);
 		if (!dataLenght) return;
 
-		TRFC905ServiceHeader shdr = readRFC905ServiceHeader(c_CCCDT, 0);
+		TRFC905ServiceHeader shdr = readRFC905ServiceHeader(*m_pIs, c_CCCDT, 0);
 		if (!shdr.lengthIndicator) return;
 
 		m_dstRef = shdr.srcRef;
 
-		if (!readRFC905VariablePart(dataLenght-4, m_tSelRemote, m_tSelLocal)) return;
+		if (!readRFC905VariablePart(*m_pIs, dataLenght-4, m_tSelRemote, m_tSelLocal)) return;
 
 		connect(m_pSocket->getSocket(), SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
 
@@ -488,12 +501,12 @@ bool CConnection::receive(QByteArray& tSduBuffer)
 
 	do
 	{
-		packetLength = readRFC1006Header();
+		packetLength = readRFC1006Header(*m_pIs);
 		if (packetLength <= 7) { emit signalIOError("Syntax error: receive packet length parameter < 7."); return false; }
 
 		quint16 tsduLength = packetLength-7;
 
-		hdr = readRFC905DataHeader();
+		hdr = readRFC905DataHeader(*m_pIs);
 		if (!hdr.lengthIndicator) return false;
 
 		eot = 0;

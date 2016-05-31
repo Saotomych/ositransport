@@ -64,19 +64,19 @@ private:
 		quint8 pduCode;
 	};
 
-	quint16 readRFC1006Header();	// Call on start of receiving. Return Packet Length.
-	TRFC905ServiceHeader readRFC905ServiceHeader(quint8 cdtCode, quint8 readClass);	// Return RFC905 header as struct.
-	TRFC905DataHeader readRFC905DataHeader();
-	quint32 readRFC905VariablePart(quint32 lengthIndicator, QByteArray& tSel1, QByteArray& tSel2);
-	quint32 readUserDataBlock(QByteArray& tSel);
+public:
+
+	quint16 readRFC1006Header(QDataStream& iStream);	// Call on start of receiving. Return Packet Length.
+	TRFC905ServiceHeader readRFC905ServiceHeader(QDataStream& iStream, quint8 cdtCode, quint8 readClass);	// Return RFC905 header as struct.
+	TRFC905DataHeader readRFC905DataHeader(QDataStream& iStream);
+	quint32 readRFC905VariablePart(QDataStream& iStream, quint32 lengthIndicator, QByteArray& tSel1, QByteArray& tSel2);
+	quint32 readUserDataBlock(QDataStream& iStream, QByteArray& tSel);
 
 	quint32 writeRFC1006ServiceHeader(quint32 beginSize);
 	quint32 writeRFC1006DataHeader(quint32 size);
 	quint32 writeRFC905DataHeader(quint8 cdtCode);
 	quint32 writeRFC905ServiceHeader(quint8 cdtCode);
 	quint32 writeRFC905Service(QByteArray& tSel1, QByteArray& tSel2);
-
-public:
 
 	CConnection(CTcpEasySocket* socket, quint32 maxTPduSizeParam, qint32 messageTimeout,
 				qint32 messageFragmentTimeout);
@@ -176,6 +176,14 @@ public:
 	 * Will close the TCP connection if its still open and free any resources of this connection.
 	 */
 	void close();
+
+	/*
+	 * Wait data appearing into input stream
+	 *
+	 * @return Reference to input stream smart pointer
+	 */
+	QScopedPointer<QDataStream>& waitData();
+	QScopedPointer<QDataStream>& inputStream() { return m_pIs; }
 
 public slots:
 	void slotReadyRead();
