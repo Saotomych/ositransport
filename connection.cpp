@@ -325,6 +325,7 @@ void CConnection::listenForCR()
 	m_pSocket->getSocket()->waitForBytesWritten(m_messageTimeout);
 
 	connect(m_pSocket->getSocket(), SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
+	connect(m_pSocket->getSocket(), SIGNAL(bytesWritten(qint64)), this, SLOT(slotBytesWritten(qint64)));
 
 	emit signalCRReady(this);
 }
@@ -365,6 +366,7 @@ void CConnection::startConnection()
 		if (!readRFC905VariablePart(*m_pIs, dataLenght-4, m_tSelRemote, m_tSelLocal)) return;
 
 		connect(m_pSocket->getSocket(), SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
+		connect(m_pSocket->getSocket(), SIGNAL(bytesWritten(qint64)), this, SLOT(slotBytesWritten(qint64)));
 
 		emit signalConnectionReady(this);
 	}
@@ -376,88 +378,17 @@ void CConnection::startConnection()
 }
 
 // Emit for Errors occurs into private functions
-void CConnection::send(QLinkedList<QByteArray >& tsdus, QLinkedList<quint32>& offsets, QLinkedList<quint32>& lengths)
+quint32 CConnection::send(QLinkedList<QByteArray>& tsdus, QLinkedList<quint32>& offsets, QLinkedList<quint32>& lengths)
 {
+	sender.reset( new CSender(tsdus,offsets,lengths, m_maxTPDUSize));
 
-	m_pSocket->getSocket()->waitForBytesWritten(m_messageTimeout);
+	sender->sendNextTSDU(*this);
 
-	quint32 bytesLeft = 0;
-	for (quint32 length: lengths) bytesLeft+=length;
-
-	quint32 fullLen = bytesLeft;
-
-	quint32 tsduOffset = 0;
-	quint32 numBytesToWrite = 0;
-	quint32 maxTSDUSize = m_maxTPDUSize - 3;
-
-	auto it_tsdu = tsdus.begin();
-	auto it_len = lengths.begin();
-	auto it_offset = offsets.begin();
-
-	while (bytesLeft)
-	{
-		if (bytesLeft > maxTSDUSize)
-		{
-			writeRFC1006DataHeader(maxTSDUSize);
-			numBytesToWrite = maxTSDUSize;
-			writeRFC905DataHeader(0x00);
-		}
-		else
-		{
-			writeRFC1006DataHeader(bytesLeft);
-			numBytesToWrite = bytesLeft;
-			writeRFC905DataHeader(0x80);
-		}
-
-		bytesLeft -= numBytesToWrite;
-
-		while (numBytesToWrite)
-		{
-
-			QByteArray& tsdu = *it_tsdu;
-			quint32 len = *it_len;
-			quint32 offset = *it_offset;
-
-			quint32 tsduWrLen = len - tsduOffset;
-
-			if (numBytesToWrite > tsduWrLen)
-			{
-				m_pOs->writeRawData(&tsdu.data()[tsduOffset+offset], tsduWrLen);
-				numBytesToWrite -= tsduWrLen;
-				tsduOffset = 0;
-
-				it_tsdu++;
-				it_len++;
-				it_offset++;
-			}
-			else
-			{
-				m_pOs->writeRawData(&tsdu.data()[tsduOffset+offset], numBytesToWrite);
-				if (numBytesToWrite == tsduWrLen)
-				{
-					tsduOffset = 0;
-
-					it_tsdu++;
-					it_len++;
-					it_offset++;
-				}
-				else
-				{
-					tsduOffset += numBytesToWrite;
-				}
-
-				numBytesToWrite = 0;
-			}
-		}
-
-		qDebug() << "CConnection::send: WOW! Flush! bytes wroten = " << fullLen - bytesLeft << " from " << fullLen;
-	}
-
-	m_pSocket->getSocket()->flush();
+	return 0;
 }
 
 // Emit for Errors occurs into private functions
-void CConnection::send(QByteArray& tsdu, quint32 offset, quint32 length)
+quint32 CConnection::send(QByteArray& tsdu, quint32 offset, quint32 length)
 {
 	QLinkedList<QByteArray > tsdus;
 	tsdus.push_back(tsdu);
@@ -468,7 +399,7 @@ void CConnection::send(QByteArray& tsdu, quint32 offset, quint32 length)
 	QLinkedList<quint32> lengths;
 	lengths.push_back(length);
 
-	send(tsdus, offsets, lengths);
+	return send(tsdus, offsets, lengths);
 }
 
 quint32 CConnection::getMessageTimeout()
@@ -493,39 +424,41 @@ void CConnection::setMessageFragmentTimeout(int messageFragmentTimeout) {
 // Emit for Errors may occur into private functions
 bool CConnection::receive(QByteArray& tSduBuffer)
 {
-
-	quint16 packetLength = 0;
-	quint16 fullTSduLength = 0;
 	quint8 eot = 0;
 	qint8 reason = 0;
 	quint16 data16 = 0;
+	quint32 passnum = 0;
 
-	TRFC905DataHeader hdr;
-
-	if (m_pSocket->getSocket()->bytesAvailable() == 0)
+	while (m_pIs->atEnd() == false && eot != 0x80)
 	{
-		if (m_pSocket->getSocket()->waitForReadyRead(m_messageFragmentTimeout) == false)
+		quint16 packetLength = 0;
+
+		TRFC905DataHeader hdr;
+
+		packetLength = readRFC1006Header(*m_pIs);
+		if (packetLength <= 7)
 		{
-			emit signalIOError("CConnection::receive: waiting of data timed is out");
+			emit signalIOError("Syntax error: receive packet length parameter < 7.");
 			return false;
 		}
-	}
-
-	do
-	{
-		packetLength = readRFC1006Header(*m_pIs);
-		if (packetLength <= 7) { emit signalIOError("Syntax error: receive packet length parameter < 7."); return false; }
 
 		quint16 tsduLength = packetLength-7;
 
 		hdr = readRFC905DataHeader(*m_pIs);
-		if (!hdr.lengthIndicator) return false;
+		if (!hdr.lengthIndicator)
+		{
+			qDebug() << "CConnection::receive: hdr.lengthIndicator = 0";
+			return false;
+		}
 
 		eot = 0;
 		if (hdr.pduCode == 0xF0)
 		{
 			*m_pIs >> eot;
-			if ( eot != 0 && eot != 0x80 ) { emit signalIOError("Syntax Error: EOT wrong"); return false; }
+			if ( eot != 0 && eot != 0x80 ) {
+				emit signalIOError("Syntax Error: EOT wrong");
+				return false;
+			}
 
 			if ( (qint64)(tsduLength) > c_maxTSDUBufferSize )
 			{
@@ -533,8 +466,13 @@ bool CConnection::receive(QByteArray& tSduBuffer)
 				return false;
 			}
 
-			tSduBuffer += m_pSocket->getSocket()->read(tsduLength);
-			fullTSduLength += tsduLength;
+			tSduBuffer.reserve( tSduBuffer.size() + tsduLength);
+			for (qint32 i = 0; i < tsduLength; ++i)
+			{
+				qint8 d;
+				*m_pIs >> d;
+				tSduBuffer.append(d);
+			}
 
 		}
 		else if (hdr.pduCode == 0x80) // Disconnect Request - DR (ISO RFC-905 ISO DP 8073)
@@ -568,13 +506,11 @@ bool CConnection::receive(QByteArray& tSduBuffer)
 			return false;
 		}
 
-	}while ( eot != 0x80 && m_pSocket->getSocket()->bytesAvailable() != 0);
+		passnum++;
+	}
 
 	if (!eot)
-	{
-		emit signalIOError("Error: Received last eot error.");
 		return false;
-	}
 
 	return true;
 }
@@ -597,7 +533,7 @@ void CConnection::close()
 		m_pSocket->getSocket()->close();
 		m_pIs->setStatus(QDataStream::WriteFailed);
 
-		delete m_pSocket;
+//		delete m_pSocket;
 
 		emit signalConnectionClosed(this);
 	}
@@ -605,6 +541,83 @@ void CConnection::close()
 
 void CConnection::slotReadyRead()
 {
+	qDebug() << "CConnection::slotReadyRead:";
 
 	emit signalTSduReady(this);
+}
+
+void CConnection::slotBytesWritten(qint64 bytes)
+{
+	qDebug() << "CConnection::slotBytesWritten" << bytes;
+
+	sender->sendNextTSDU(*this);
+}
+
+bool CConnection::CSender::sendNextTSDU(CConnection& Conn)
+{
+
+	qDebug() << "CConnection::CSender::sendNextTSDU";
+
+	if (bytesLeft)
+	{
+		if (bytesLeft > maxTSDUSize)
+		{
+			Conn.writeRFC1006DataHeader(maxTSDUSize);
+			numBytesToWrite = maxTSDUSize;
+			Conn.writeRFC905DataHeader(0x00);
+		}
+		else
+		{
+			Conn.writeRFC1006DataHeader(bytesLeft);
+			numBytesToWrite = bytesLeft;
+			Conn.writeRFC905DataHeader(0x80);
+		}
+
+		bytesLeft -= numBytesToWrite;
+
+		if (numBytesToWrite)
+		{
+
+			QByteArray& tsdu = *it_tsdu;
+			quint32 len = *it_len;
+			quint32 offset = *it_offset;
+
+			quint32 tsduWrLen = len - tsduOffset;
+
+			if (numBytesToWrite > tsduWrLen)
+			{
+				Conn.m_pOs->writeRawData(&tsdu.data()[tsduOffset+offset], tsduWrLen);
+				numBytesToWrite -= tsduWrLen;
+				tsduOffset = 0;
+
+				it_tsdu++;
+				it_len++;
+				it_offset++;
+			}
+			else
+			{
+				Conn.m_pOs->writeRawData(&tsdu.data()[tsduOffset+offset], numBytesToWrite);
+				if (numBytesToWrite == tsduWrLen)
+				{
+					tsduOffset = 0;
+
+					it_tsdu++;
+					it_len++;
+					it_offset++;
+				}
+				else
+				{
+					tsduOffset += numBytesToWrite;
+				}
+
+				numBytesToWrite = 0;
+			}
+		}
+
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
