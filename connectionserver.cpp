@@ -45,6 +45,9 @@ CConnection* CConnectionServer::createNewConnection(CTcpEasySocket* tcpSocket)
 		connect(pconn, SIGNAL(signalTSduReady(const CConnection*)), m_pConnListener, SLOT(slotTSduReady(const CConnection*)));
 		connect(pconn, SIGNAL(signalIOError(QString)), m_pConnListener, SLOT(slotIOError(QString)));
 
+		// signal from ConnectionListener to this
+		connect(m_pConnListener, SIGNAL(signalConnectAnswer(const CConnection*)), this, SLOT(slotServerAnswer(const CConnection*)));
+
 		return pconn;
 	}
 
@@ -99,8 +102,6 @@ void CConnectionServer::slotServerAcceptConnection()
 	CConnection* pconn = createNewConnection(mysock);
 
 	emit signalClientConnected(pconn);
-
-	pconn->listenForCR();
 }
 
 void CConnectionServer::slotServerConnectionClosed(const CConnection* that)
@@ -113,6 +114,13 @@ void CConnectionServer::slotServerConnectionClosed(const CConnection* that)
 
 	if (m_pTcpServer->isListening() == false)
 		m_pTcpServer->listen(QHostAddress::AnyIPv4, m_localPort);
+}
+
+void CConnectionServer::slotServerAnswer(const CConnection* pconn)
+{
+	qDebug() << "CConnectionServer::slotServerAnswer";
+
+	(const_cast<CConnection*>(pconn))->listenForCR();
 }
 
 void CConnectionServer::slotServerError(QAbstractSocket::SocketError socketError)

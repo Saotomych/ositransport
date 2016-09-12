@@ -293,10 +293,13 @@ QScopedPointer<QDataStream>& CConnection::waitData()
 void CConnection::listenForCR()
 {
 
-	if (m_pSocket->getSocket()->waitForReadyRead(m_messageFragmentTimeout) == false)
+	if (m_pSocket->getSocket()->bytesAvailable() == 0)
 	{
-		emit signalIOError("CConnection::listenForCR: waiting of data timed is out");
-		return;
+		if (m_pSocket->getSocket()->waitForReadyRead(m_messageFragmentTimeout) == false)
+		{
+			emit signalIOError("CConnection::listenForCR: waiting of data timed is out");
+			return;
+		}
 	}
 
 	// Read Connect Request (CR)
@@ -381,9 +384,15 @@ void CConnection::send(QLinkedList<QByteArray >& tsdus, QLinkedList<quint32>& of
 	quint32 bytesLeft = 0;
 	for (quint32 length: lengths) bytesLeft+=length;
 
+	quint32 fullLen = bytesLeft;
+
 	quint32 tsduOffset = 0;
 	quint32 numBytesToWrite = 0;
 	quint32 maxTSDUSize = m_maxTPDUSize - 3;
+
+	auto it_tsdu = tsdus.begin();
+	auto it_len = lengths.begin();
+	auto it_offset = offsets.begin();
 
 	while (bytesLeft)
 	{
@@ -401,10 +410,6 @@ void CConnection::send(QLinkedList<QByteArray >& tsdus, QLinkedList<quint32>& of
 		}
 
 		bytesLeft -= numBytesToWrite;
-
-		auto it_tsdu = tsdus.begin();
-		auto it_len = lengths.begin();
-		auto it_offset = offsets.begin();
 
 		while (numBytesToWrite)
 		{
@@ -445,10 +450,10 @@ void CConnection::send(QLinkedList<QByteArray >& tsdus, QLinkedList<quint32>& of
 			}
 		}
 
+		qDebug() << "CConnection::send: WOW! Flush! bytes wroten = " << fullLen - bytesLeft << " from " << fullLen;
 	}
 
 	m_pSocket->getSocket()->flush();
-
 }
 
 // Emit for Errors occurs into private functions
@@ -497,7 +502,14 @@ bool CConnection::receive(QByteArray& tSduBuffer)
 
 	TRFC905DataHeader hdr;
 
-	if (m_pSocket->getSocket()->bytesAvailable() == 0) return false;
+	if (m_pSocket->getSocket()->bytesAvailable() == 0)
+	{
+		if (m_pSocket->getSocket()->waitForReadyRead(m_messageFragmentTimeout) == false)
+		{
+			emit signalIOError("CConnection::receive: waiting of data timed is out");
+			return false;
+		}
+	}
 
 	do
 	{

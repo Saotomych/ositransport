@@ -53,6 +53,8 @@ private slots:
 	void slotServerAcceptConnection();
 	void slotServerError(QAbstractSocket::SocketError socketError);
 
+	void slotServerAnswer(const CConnection* pconn);
+
 signals:
 	void signalClientConnected(const CConnection* that);
 	void signalClientDisconnected(const CConnection* that);

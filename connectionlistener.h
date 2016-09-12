@@ -14,6 +14,7 @@ public:
 
 signals:
 	void signalConnected(const CConnection* that);
+	void signalConnectAnswer(const CConnection* that);
 	void signalDisconnected(const CConnection* that);
 	void signalTSduReady(const CConnection* that);
 	void signalCRReady(const CConnection* that);
@@ -21,6 +22,7 @@ signals:
 
 private slots:
 	void slotClientConnected(const CConnection* that);
+	void slotConnectAnswer(const CConnection* that);
 	void slotClientDisconnected(const CConnection* that);
 	void slotTSduReady(const CConnection* that);
 	void slotCRReady(const CConnection* that);
