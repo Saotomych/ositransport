@@ -99,8 +99,6 @@ void CConnectionServer::slotServerAcceptConnection()
 	CConnection* pconn = createNewConnection(mysock);
 
 	emit signalClientConnected(pconn);
-
-	pconn->listenForCR();
 }
 
 void CConnectionServer::slotServerConnectionClosed(const CConnection* that)

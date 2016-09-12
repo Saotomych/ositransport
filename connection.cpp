@@ -569,7 +569,7 @@ bool CConnection::CSender::sendNextTSDU(CConnection& Conn)
 
 		bytesLeft -= numBytesToWrite;
 
-		if (numBytesToWrite)
+		while (numBytesToWrite)
 		{
 
 			QByteArray& tsdu = *it_tsdu;
