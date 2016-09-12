@@ -293,13 +293,10 @@ QScopedPointer<QDataStream>& CConnection::waitData()
 void CConnection::listenForCR()
 {
 
-	if (m_pSocket->getSocket()->bytesAvailable() == 0)
+	if (m_pSocket->getSocket()->waitForReadyRead(m_messageFragmentTimeout) == false)
 	{
-		if (m_pSocket->getSocket()->waitForReadyRead(m_messageFragmentTimeout) == false)
-		{
-			emit signalIOError("CConnection::listenForCR: waiting of data timed is out");
-			return;
-		}
+		emit signalIOError("CConnection::listenForCR: waiting of data timed is out");
+		return;
 	}
 
 	// Read Connect Request (CR)
@@ -380,6 +377,7 @@ void CConnection::startConnection()
 // Emit for Errors occurs into private functions
 quint32 CConnection::send(QLinkedList<QByteArray>& tsdus, QLinkedList<quint32>& offsets, QLinkedList<quint32>& lengths)
 {
+
 	sender.reset( new CSender(tsdus,offsets,lengths, m_maxTPDUSize));
 
 	sender->sendNextTSDU(*this);
