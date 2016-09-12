@@ -115,9 +115,9 @@ public:
 	 * @param lengths
 	 * 			Lengths of buffers
 	 */
-	void send(QLinkedList<QByteArray >& tsdus, QLinkedList<quint32>& offsets, QLinkedList<quint32>& lengths);
+	quint32 send(QLinkedList<QByteArray>& tsdus, QLinkedList<quint32>& offsets, QLinkedList<quint32>& lengths);
 
-	void send(QByteArray& tsdu, quint32 offset, quint32 length);
+	quint32 send(QByteArray& tsdu, quint32 offset, quint32 length);
 
 	/**
 	 * @return messageTimeout
@@ -185,8 +185,50 @@ public:
 	QScopedPointer<QDataStream>& waitData();
 	QScopedPointer<QDataStream>& inputStream() { return m_pIs; }
 
+protected:
+
+	class CSender
+	{
+	private:
+
+		friend CConnection;
+
+		quint32 bytesLeft = 0;
+		quint32 tsduOffset = 0;
+		quint32 numBytesToWrite = 0;
+		quint32 maxTSDUSize;
+
+		QLinkedList<QByteArray> tsdu;
+		QLinkedList<quint32> offset;
+		QLinkedList<quint32> len;
+		QLinkedList<QByteArray>::iterator it_tsdu;
+		QLinkedList<quint32>::iterator it_offset;
+		QLinkedList<quint32>::iterator it_len;
+
+		CSender(QLinkedList<QByteArray>& tsdus, QLinkedList<quint32>& offsets, QLinkedList<quint32>& lengths, qint32 maxTPDUSize):
+			maxTSDUSize(maxTPDUSize - 3),
+			tsdu(tsdus),
+			offset(offsets),
+			len(lengths)
+		{
+			bytesLeft = 0;
+			for (quint32 length: lengths) bytesLeft+=length;
+
+			it_tsdu = tsdu.begin();
+			it_offset = offset.begin();
+			it_len = len.begin();
+		}
+
+		bool sendNextTSDU(CConnection& Conn);
+	};
+
+	friend CSender;
+
+	QScopedPointer<CSender> sender;
+
 public slots:
 	void slotReadyRead();
+	void slotBytesWritten(qint64 bytes);
 
 signals:
 
