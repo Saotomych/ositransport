@@ -319,9 +319,6 @@ void CConnection::listenForCR()
 	m_pSocket->getSocket()->flush();
 	m_pSocket->getSocket()->waitForBytesWritten(m_messageTimeout);
 
-	connect(m_pSocket->getSocket(), SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
-	connect(m_pSocket->getSocket(), SIGNAL(bytesWritten(qint64)), this, SLOT(slotBytesWritten(qint64)));
-
 	emit signalCRReady(this);
 }
 
@@ -359,9 +356,6 @@ void CConnection::startConnection()
 		m_dstRef = shdr.srcRef;
 
 		if (!readRFC905VariablePart(*m_pIs, dataLenght-4, m_tSelRemote, m_tSelLocal)) return;
-
-		connect(m_pSocket->getSocket(), SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
-		connect(m_pSocket->getSocket(), SIGNAL(bytesWritten(qint64)), this, SLOT(slotBytesWritten(qint64)));
 
 		emit signalConnectionReady(this);
 	}
@@ -531,6 +525,12 @@ void CConnection::close()
 
 		emit signalConnectionClosed(this);
 	}
+}
+
+void CConnection::asyncReadWriteInit() const
+{
+	connect(m_pSocket->getSocket(), SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
+	connect(m_pSocket->getSocket(), SIGNAL(bytesWritten(qint64)), this, SLOT(slotBytesWritten(qint64)));
 }
 
 void CConnection::slotReadyRead()
