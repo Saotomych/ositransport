@@ -22,11 +22,8 @@ m_messageTimeout(messageTimeout),
 m_messageFragmentTimeout(messageFragmentTimeout),
 m_closed(true)
 {
-	QScopedPointer<QDataStream> os(new QDataStream(m_pSocket->getSocket()));
-	m_pOs.swap(os);
-
-	QScopedPointer<QDataStream> is(new QDataStream(m_pSocket->getSocket()));
-	m_pIs.swap(is);
+	m_pOs.reset(new QDataStream(m_pSocket->getSocket()));
+	m_pIs.reset(new QDataStream(m_pSocket->getSocket()));
 
 	m_maxTPDUSize = CClientTSAP::getMaxTPDUSize(m_maxTPDUSizeParam);
 
@@ -43,6 +40,7 @@ CConnection::~CConnection()
 	// so that destructor and copy constructor are public
 
 	delete m_pSocket;
+	m_pSocket = nullptr;
 
 }
 
@@ -530,8 +528,6 @@ void CConnection::close()
 		m_closed = true;
 		m_pSocket->getSocket()->close();
 		m_pIs->setStatus(QDataStream::WriteFailed);
-
-//		delete m_pSocket;
 
 		emit signalConnectionClosed(this);
 	}
