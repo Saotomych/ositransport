@@ -179,17 +179,15 @@ public:
 	 */
 	void close();
 
-	/*
-	 * Wait data appearing into input stream
-	 *
-	 * @return Reference to input stream smart pointer
-	 */
-	QScopedPointer<QDataStream>& waitData();
+
+	void parseServerAnswer();
+
+
 	QScopedPointer<QDataStream>& inputStream() { return m_pIs; }
 
 protected:
 
-	class CSender
+	class CTSDUSender
 	{
 	private:
 
@@ -207,7 +205,7 @@ protected:
 		QLinkedList<quint32>::iterator it_offset;
 		QLinkedList<quint32>::iterator it_len;
 
-		CSender(QLinkedList<QByteArray>& tsdus, QLinkedList<quint32>& offsets, QLinkedList<quint32>& lengths, qint32 maxTPDUSize):
+		CTSDUSender(QLinkedList<QByteArray>& tsdus, QLinkedList<quint32>& offsets, QLinkedList<quint32>& lengths, qint32 maxTPDUSize):
 			maxTSDUSize(maxTPDUSize - 3),
 			tsdu(tsdus),
 			offset(offsets),
@@ -224,9 +222,40 @@ protected:
 		bool sendNextTSDU(CConnection& Conn);
 	};
 
-	friend CSender;
+	class CServiceSender
+	{
+	private:
 
-	QScopedPointer<CSender> sender;
+		friend CConnection;
+
+		quint32 bytesLeft = 0;
+		quint32 maxFrameSize;
+
+		quint32 m_beginSize;
+
+		QByteArray m_tSel1,
+				   m_tSel2;
+
+		quint8 m_opCode;
+
+		CServiceSender(quint32 beginSize, quint8 opCode, QByteArray& tSel1, QByteArray& tSel2, qint32 FrameSize = 128):
+			bytesLeft(14),	// Header size
+			maxFrameSize(FrameSize),
+			m_beginSize(beginSize),
+			m_tSel1(tSel1),
+			m_tSel2(tSel2),
+			m_opCode(opCode)
+		{
+		}
+
+		bool sendService(CConnection& Conn);
+	};
+
+	friend CTSDUSender;
+	friend CServiceSender;
+
+	QScopedPointer<CTSDUSender> TSDUSender;
+	QScopedPointer<CServiceSender> ServiceSender;
 
 public slots:
 	void slotReadyRead();

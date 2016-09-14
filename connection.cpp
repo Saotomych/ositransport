@@ -275,27 +275,16 @@ quint32 CConnection::writeRFC905Service(QByteArray& tSel1, QByteArray& tSel2)
 }
 
 
-QScopedPointer<QDataStream>& CConnection::waitData()
-{
-
-	if (m_pSocket->getSocket()->waitForReadyRead(m_messageFragmentTimeout) == false)
-	{
-		emit signalIOError("CConnection::listenForCR: waiting of data timed is out");
-	}
-
-	return m_pIs;
-}
-
-
 // Emit for Errors occurs into private functions
 void CConnection::listenForCR()
 {
 
-	if (m_pSocket->getSocket()->waitForReadyRead(m_messageFragmentTimeout) == false)
-	{
-		emit signalIOError("CConnection::listenForCR: waiting of data timed is out");
-		return;
-	}
+	if (m_pSocket->getSocket()->bytesAvailable() == 0)
+		if (m_pSocket->getSocket()->waitForReadyRead(m_messageFragmentTimeout) == false)
+		{
+			emit signalIOError("CConnection::listenForCR: waiting of data timed is out");
+			return;
+		}
 
 	// Read Connect Request (CR)
 	quint16 dataLenght = readRFC1006Header(*m_pIs);
@@ -312,13 +301,8 @@ void CConnection::listenForCR()
 	}
 
 	// Write Connection Confirm (CC)
-	writeRFC1006ServiceHeader(3);
-	writeRFC905ServiceHeader(c_CCCDT);
-	writeRFC905Service(m_tSelLocal, m_tSelRemote);
-
-	m_pSocket->getSocket()->flush();
-	m_pSocket->getSocket()->waitForBytesWritten(m_messageTimeout);
-
+	ServiceSender.reset( new CServiceSender(3, c_CCCDT, m_tSelLocal, m_tSelRemote));
+	emit signalBytesWritten(0);
 	emit signalCRReady(this);
 }
 
@@ -337,40 +321,34 @@ void CConnection::startConnection()
 	}
 
 	// Send connection request (CR)
-	writeRFC1006ServiceHeader(3);
-	writeRFC905ServiceHeader(c_CRCDT);
-	writeRFC905Service(m_tSelRemote, m_tSelLocal);
+	ServiceSender.reset( new CServiceSender(3, c_CRCDT, m_tSelRemote, m_tSelLocal) );
 
-	m_pSocket->getSocket()->flush();
-	m_pSocket->getSocket()->waitForBytesWritten(m_messageTimeout);
+	emit signalBytesWritten(0);
 
-	if (m_pSocket->getSocket()->waitForReadyRead(m_messageTimeout) == true)
-	{
-		// Read connection confirm (CC)
-		quint16 dataLenght = readRFC1006Header(*m_pIs);
-		if (!dataLenght) return;
+	return;
+}
 
-		TRFC905ServiceHeader shdr = readRFC905ServiceHeader(*m_pIs, c_CCCDT, 0);
-		if (!shdr.lengthIndicator) return;
+void CConnection::parseServerAnswer()
+{
+	// Read connection confirm (CC)
+	quint16 dataLenght = readRFC1006Header(*m_pIs);
+	if (!dataLenght) return;
 
-		m_dstRef = shdr.srcRef;
+	TRFC905ServiceHeader shdr = readRFC905ServiceHeader(*m_pIs, c_CCCDT, 0);
+	if (!shdr.lengthIndicator) return;
 
-		if (!readRFC905VariablePart(*m_pIs, dataLenght-4, m_tSelRemote, m_tSelLocal)) return;
+	m_dstRef = shdr.srcRef;
 
-		emit signalConnectionReady(this);
-	}
-	else
-	{
-		emit signalIOError("CConnection::startConnection: don't answer for startConnection");
-	}
+	if (!readRFC905VariablePart(*m_pIs, dataLenght-4, m_tSelRemote, m_tSelLocal)) return;
 
+	emit signalConnectionReady(this);
 }
 
 // Emit for Errors occurs into private functions
 quint32 CConnection::send(QLinkedList<QByteArray>& tsdus, QLinkedList<quint32>& offsets, QLinkedList<quint32>& lengths)
 {
 
-	sender.reset( new CSender(tsdus,offsets,lengths, m_maxTPDUSize));
+	TSDUSender.reset( new CTSDUSender(tsdus,offsets,lengths, m_maxTPDUSize));
 
 	emit signalBytesWritten(0);
 
@@ -545,13 +523,33 @@ void CConnection::slotBytesWritten(qint64 bytes)
 {
 	qDebug() << "CConnection::slotBytesWritten" << bytes;
 
-	sender->sendNextTSDU(*this);
+	if (TSDUSender.isNull() == false)
+		TSDUSender->sendNextTSDU(*this);
+
+	if (ServiceSender.isNull() == false)
+		ServiceSender->sendService(*this);
 }
 
-bool CConnection::CSender::sendNextTSDU(CConnection& Conn)
+bool CConnection::CServiceSender::sendService(CConnection& Conn)
+{
+	qDebug() << "CConnection::CServiceSender::sendService";
+
+	if (bytesLeft)
+	{
+		Conn.writeRFC1006ServiceHeader(m_beginSize);
+		Conn.writeRFC905ServiceHeader(m_opCode);
+		Conn.writeRFC905Service(m_tSel1, m_tSel2);
+
+		bytesLeft = 0;
+	}
+
+	return true;
+}
+
+bool CConnection::CTSDUSender::sendNextTSDU(CConnection& Conn)
 {
 
-	qDebug() << "CConnection::CSender::sendNextTSDU";
+	qDebug() << "CConnection::CTSDUSender::sendNextTSDU";
 
 	if (bytesLeft)
 	{

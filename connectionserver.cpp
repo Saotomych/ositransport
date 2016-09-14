@@ -45,6 +45,8 @@ CConnection* CConnectionServer::createNewConnection(CTcpEasySocket* tcpSocket)
 		connect(pconn, SIGNAL(signalTSduReady(const CConnection*)), m_pConnListener, SLOT(slotTSduReady(const CConnection*)));
 		connect(pconn, SIGNAL(signalIOError(QString)), m_pConnListener, SLOT(slotIOError(QString)));
 
+		pconn->asyncReadWriteInit();
+
 		return pconn;
 	}
 
