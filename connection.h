@@ -89,8 +89,6 @@ public:
 
 	void setSelLocal(QByteArray& tSelLocal);
 
-	void asyncReadWriteInit() const;
-
 	/**
 	 * This function is called once a client has connected to the server. It listens for a Connection Request (CR). If
 	 * this is successful it replies afterwards with a Connection Confirm (CC). According to the norm a syntax error in

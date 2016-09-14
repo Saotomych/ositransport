@@ -32,6 +32,9 @@ m_closed(true)
 	s_connectionCounter++;
 	s_mutexConCounter.unlock();
 
+	connect(m_pSocket->getSocket(), SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
+	connect(m_pSocket->getSocket(), SIGNAL(bytesWritten(qint64)), this, SLOT(slotBytesWritten(qint64)));
+	connect(this, SIGNAL(signalBytesWritten(qint64)), this, SLOT(slotBytesWritten(qint64)));
 }
 
 CConnection::~CConnection()
@@ -503,13 +506,6 @@ void CConnection::close()
 
 		emit signalConnectionClosed(this);
 	}
-}
-
-void CConnection::asyncReadWriteInit() const
-{
-	connect(m_pSocket->getSocket(), SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
-	connect(m_pSocket->getSocket(), SIGNAL(bytesWritten(qint64)), this, SLOT(slotBytesWritten(qint64)));
-	connect(this, SIGNAL(signalBytesWritten(qint64)), this, SLOT(slotBytesWritten(qint64)));
 }
 
 void CConnection::slotReadyRead()
