@@ -372,7 +372,7 @@ quint32 CConnection::send(QLinkedList<QByteArray>& tsdus, QLinkedList<quint32>& 
 
 	sender.reset( new CSender(tsdus,offsets,lengths, m_maxTPDUSize));
 
-	sender->sendNextTSDU(*this);
+	emit signalBytesWritten(0);
 
 	return 0;
 }
@@ -531,6 +531,7 @@ void CConnection::asyncReadWriteInit() const
 {
 	connect(m_pSocket->getSocket(), SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
 	connect(m_pSocket->getSocket(), SIGNAL(bytesWritten(qint64)), this, SLOT(slotBytesWritten(qint64)));
+	connect(this, SIGNAL(signalBytesWritten(qint64)), this, SLOT(slotBytesWritten(qint64)));
 }
 
 void CConnection::slotReadyRead()

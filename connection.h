@@ -239,6 +239,7 @@ signals:
 	void signalConnectionClosed(const CConnection* that);
 	void signalTSduReady(const CConnection* that);
 	void signalCRReady(const CConnection* that);
+	void signalBytesWritten(qint64);
 
 	// Error signals
 	void signalIOError(QString strErr);
