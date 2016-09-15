@@ -6,6 +6,10 @@
 #include "connectionlistener.h"
 #include "tcpeasysocket.h"
 
+/**
+ * @class CConnectionServer is the QTcpServer observer for connection states and notes about new connections and disconnections
+ */
+
 class OSITRANSPORTSHARED_EXPORT CConnectionServer: public QObject
 {
 
@@ -26,8 +30,25 @@ private:
 
 	QTcpServer* m_pTcpServer;
 
-public:
+public: // API
 
+/**
+ * @brief CConnectionServer constructor
+ * @param parent
+ * 			QObject parent
+ * @param localPort
+ * 			is the localPort where connections are taken
+ * @param maxTPduSizeParam
+ * 			is the maximum TPDU size parameter to be used by this TSAP
+ * @param msgTimeout
+ * 			CConnection timeout for waiting for the first byte of a new message
+ * @param msgFragmentTimeout
+ * 			CConnection timeout for receiving data once the beginning of a message has been received
+ * @param maxConnections
+ * 			the number of connections allowed
+ * @param listener
+ * 			listener for the all connection events
+ */
 	CConnectionServer(
 			QObject *parent,
 			quint32 localPort,
@@ -39,13 +60,35 @@ public:
 
 	virtual ~CConnectionServer();
 
+/**
+ * @brief creates new connection and connect him to the slots
+ * @param tcpSocket
+ * 			new socket for the connection
+ * @return new connection pointer
+ */
 	CConnection* createNewConnection(CTcpEasySocket* tcpSocket);
 
+/**
+ * @brief getter for maximum quantity of the user connections
+ * @return maximum quantity of the user connections
+ */
     quint32 getMaxConnections();
+
+/**
+ * @brief setter for maximum quantity of the user connections
+ * @param maxConnections
+ * 			is the maximum quantity of the user connections
+ */
     void setMaxConnections(quint32 maxConnections);
 
-public: //API
+/**
+ * @brief server up
+ */
     void startServer();
+
+/**
+ * @brief server down
+ */
     void stopServer();
 
 private slots:

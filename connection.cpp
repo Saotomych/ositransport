@@ -1,7 +1,5 @@
 #include "connection.h"
 
-#include "clienttsap.h"	// include for getMaxPDUSize // TODO fix this back link
-
 qint32 CConnection::s_connectionCounter = 0;
 
 QMutex CConnection::s_mutexConCounter;
@@ -25,7 +23,7 @@ m_closed(true)
 	m_pOs.reset(new QDataStream(m_pSocket->getSocket()));
 	m_pIs.reset(new QDataStream(m_pSocket->getSocket()));
 
-	m_maxTPDUSize = CClientTSAP::getMaxTPDUSize(m_maxTPDUSizeParam);
+	m_maxTPDUSize = getMaxTPDUSize(m_maxTPDUSizeParam);
 
 	s_mutexConCounter.lock();
 	c_connectionNum = s_connectionCounter;
@@ -176,7 +174,7 @@ quint32 CConnection::readRFC905VariablePart(QDataStream& iStream, quint32 length
 					if (newMaxTPDUSizeParam < m_maxTPDUSizeParam)
 					{
 						m_maxTPDUSizeParam = newMaxTPDUSizeParam;
-						m_maxTPDUSize = CClientTSAP::getMaxTPDUSize(m_maxTPDUSizeParam);
+						m_maxTPDUSize = getMaxTPDUSize(m_maxTPDUSizeParam);
 					}
 				}
 				variableBytesRead += 3;
@@ -506,6 +504,18 @@ void CConnection::close()
 
 		emit signalConnectionClosed(this);
 	}
+}
+
+int CConnection::getMaxTPDUSize(int maxTPDUSizeParam)
+{
+	if (maxTPDUSizeParam < 7 || maxTPDUSizeParam > 16) {
+		std::invalid_argument("CConnection::getMaxTPDUSize: maxTPDUSizeParam is wrong.");
+	}
+
+	if (maxTPDUSizeParam == 16)
+		return 65531;
+	else
+		return pow(2, maxTPDUSizeParam);
 }
 
 void CConnection::slotReadyRead()

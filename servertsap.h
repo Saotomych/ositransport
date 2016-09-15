@@ -6,6 +6,11 @@
 #include "socketfactory.h"
 #include "connectionserver.h"
 
+/**
+ * @class CServerTSAP
+ * 			Is the TSAP server for multiuser connections.
+ */
+
 class OSITRANSPORTSHARED_EXPORT CServerTSAP
 {
 	qint32 m_localPort;
@@ -23,7 +28,7 @@ class OSITRANSPORTSHARED_EXPORT CServerTSAP
 public:
 
     /**
-	 * Use this constructor to create a server TSAP that can listen on a port.
+	 * @brief This constructor to create a server TSAP that can listen on a port.
 	 *
 	 * @param port
 	 *            the TCP port that the ServerSocket will connect to. Should be
@@ -32,7 +37,7 @@ public:
     CServerTSAP(qint32 port);
 
 	/**
-	 * Use this constructor to create a server TSAP that can listen on a port.
+	 * @brief This constructor to create a server TSAP that can listen on a port.
 	 *
 	 * @param port
 	 *            the TCP port that the ServerSocket will connect to. Should be
@@ -46,7 +51,7 @@ public:
     CServerTSAP(qint32 port, qint32 backlog, QHostAddress bindAddr);
 
 	/**
-	 * Use this constructor to create a server TSAP that can listen on a port,
+	 * @brief This constructor to create a server TSAP that can listen on a port,
 	 * with a specified ServerSocketFactory.
 	 *
 	 * @param port
@@ -63,45 +68,48 @@ public:
     CServerTSAP(qint32 port, qint32 backlog, QHostAddress bindAddr, CSocketFactory* serverSocketFactory);
 
 	/**
-	 * Starts a new thread that listens on the configured port. This method is
+	 * @brief Starts a new thread that listens on the configured port. This method is
 	 * non-blocking.
-	 *
-	 * Prerequest: call createServer and connect to signals from ConnectionListener
+	 *			Prerequisite: call createServer and connect to signals from ConnectionListener
 	 *
 	 * @throws IOException
 	 */
     void startListening();
 
-	/**#include <QDebug>
+	/**
 	 *
-	 * Create environment for a new thread that listens on the configured port. This method is
+	 * @brief Create environment for a new thread that listens on the configured port. This method is
 	 * non-blocking.
 	 *
-	 * @throws IOException
+	 * @throw std::bad_alloc
+	 * 			when 'new CConnectionServer' failed
+	 * @return CConnectionListener pointer for connect/disconnect signals receiving
 	 */
 	CConnectionListener* createServer();
 
 	/**
-	 * Stop listing on the port. Stops the server thread.
+	 * @brief Stop listing on the port. Stops the server thread.
 	 */
 	void stopListening();
 
 	/**
-	 * Set the maxTPDUSize. The default maxTPDUSize is 65531 (see RFC 1006).
-	 * Only use this function if you want to change this.
+	 * @brief Set the maxTPDUSize. The default maxTPDUSize is 65531 (see RFC 1006).
+	 * 			Only use this function if you want to change this before server creating.
+	 * 			This function doesn't influence for already created server.
 	 *
 	 * @param maxTPDUSizeParam
-	 *            The maximum length is equal to 2^(maxTPDUSizeParam) octets.
-	 *            Note that the actual TSDU size that can be transfered is equal
-	 *            to TPDUSize-3. Default is 65531 octets (see RFC 1006), 7 <=
-	 *            maxTPDUSizeParam <= 16, needs to be set before listening or
-	 *            connecting
+	 *          The maximum length is equal to 2^(maxTPDUSizeParam) octets.
+	 *          Note that the actual TSDU size that can be transfered is equal
+	 *          to TPDUSize-3. Default is 65531 octets (see RFC 1006), 7 <=
+	 *          maxTPDUSizeParam <= 16, needs to be set before listening or
+	 *          connecting
 	 */
 	void setMaxTPDUSizeParam(int maxTPDUSizeParam);
 
 	/**
-	 * Set the maximum number of connections that are allowed in parallel by the
-	 * Server SAP.
+	 * @brief Set the maximum number of connections that are allowed in parallel by the Server SAP.
+	 * 			Only use this function if you want to change this before server creating.
+	 * 			This function doesn't influence for already created server.
 	 *
 	 * @param maxConnections
 	 *            the number of connections allowed (default is 100)
@@ -109,39 +117,25 @@ public:
 	void setMaxConnections(int maxConnections);
 
 	/**
-	 * Set the TConnection timeout for waiting for the first byte of a new
-	 * message. Default is 0 (unlimited)
+	 * @brief Set the TConnection timeout for waiting for the first byte of a new message.
 	 *
-	 * @param messageTimeout
+	 * @param messageTimeout. Default is 0 (unlimited).
 	 *            in milliseconds
-	 * @throws SocketException
 	 */
 	void setMessageTimeout(int messageTimeout);
 
 	/**
-	 * Set the TConnection timeout for receiving data once the beginning of a
-	 * message has been received. Default is 60000 (60 seconds)
+	 * @brief Set the TConnection timeout for receiving data once the beginning of a message has been received.
 	 *
-	 * @param messageFragmentTimeout
+	 * @param messageFragmentTimeout. Default is 60000 (60 seconds).
 	 *            in milliseconds
-	 * @throws SocketException
 	 */
 	void setMessageFragmentTimeout(int messageFragmentTimeout);
 
 	/**
-	 * Get the maxTPDUSize Parameter to be used by this TSAP
+	 * @brief Get the maxTPDUSize Parameter to be used by this TSAP
 	 */
 	quint32 getMaxTPDUSizeParam();
-
-	/**
-	 * Get the maximum TPDUSize. This is equal to 2^(maxTPDUSizeParam)
-	 *
-	 * @param maxTPDUSizeParam
-	 * @return the maximum TPDU size
-	 * @throws IOException
-	 */
-	static quint32 getMaxTPDUSize(int maxTPDUSizeParam);
-
 };
 
 #endif // CSERVERTSAP_H

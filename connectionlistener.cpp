@@ -33,13 +33,6 @@ void CConnectionListener::slotClientConnected(const CConnection* that)
 	emit signalConnected(that);
 }
 
-void CConnectionListener::slotConnectAnswer(const CConnection* that)
-{
-	qDebug() << "CConnectionListener::slotConnectAnswer";
-
-	emit signalConnectAnswer(that);
-}
-
 void CConnectionListener::slotClientDisconnected(const CConnection* that)
 {
 	qDebug() << "CConnectionListener::slotClientDisconnected";

@@ -46,8 +46,8 @@ CServerTSAP::CServerTSAP(qint32 port, qint32 backlog, QHostAddress bindAddr,
 		m_pServerThread(nullptr),
 		m_maxTPduSizeParam(16),
 		m_maxConnection(100),
-		m_messageTimeout(5000),
-		m_messageFragmentTimeout(5000)
+		m_messageTimeout(0),
+		m_messageFragmentTimeout(60000)
 {
 	if (port < 1 || port > 65535) {
 		throw std::invalid_argument("port number is out of bound");
@@ -93,6 +93,7 @@ CConnectionListener* CServerTSAP::createServer()
 	catch(std::exception& ex)
 	{
 		qDebug() << "CServerTSAP::startListening(): " << ex.what();
+		throw;
 	}
 
 	catch(...)
@@ -124,38 +125,25 @@ void CServerTSAP::stopListening()
 
 void CServerTSAP::setMaxTPDUSizeParam(int maxTPDUSizeParam)
 {
-	this->m_maxTPduSizeParam = maxTPDUSizeParam;
+	m_maxTPduSizeParam = maxTPDUSizeParam;
 }
 
 void CServerTSAP::setMaxConnections(int maxConnections)
 {
-	this->m_maxConnection = maxConnections;
+	m_maxConnection = maxConnections;
 }
 
 void CServerTSAP::setMessageTimeout(int messageTimeout)
 {
-	this->m_messageTimeout = messageTimeout;
+	m_messageTimeout = messageTimeout;
 }
 
 void CServerTSAP::setMessageFragmentTimeout(int messageFragmentTimeout)
 {
-	this->m_messageFragmentTimeout = messageFragmentTimeout;
+	m_messageFragmentTimeout = messageFragmentTimeout;
 }
 
 quint32 CServerTSAP::getMaxTPDUSizeParam()
 {
 	return m_maxTPduSizeParam;
-}
-
-/*static*/
-quint32 CServerTSAP::getMaxTPDUSize(int maxTPDUSizeParam)
-{
-	if (maxTPDUSizeParam < 7 || maxTPDUSizeParam > 16) {
-		std::invalid_argument("CServerTSAP::getMaxTPDUSize: maxTPDUSizeParam is wrong.");
-	}
-
-	if (maxTPDUSizeParam == 16)
-		return 65531;
-	else
-		return pow(2, maxTPDUSizeParam);
 }

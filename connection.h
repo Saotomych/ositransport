@@ -4,6 +4,11 @@
 #include "ositransport_global.h"
 #include "tcpeasysocket.h"
 
+/**
+ * @class CConnection
+ * @brief Class supports async read/write to QTcpSocket and wraps message with the RFC1006 & RFC905 headers.
+ */
+
 class OSITRANSPORTSHARED_EXPORT CConnection: public QObject
 {
 	Q_OBJECT
@@ -64,8 +69,6 @@ private:
 		quint8 pduCode;
 	};
 
-public:
-
 	quint16 readRFC1006Header(QDataStream& iStream);	// Call on start of receiving. Return Packet Length.
 	TRFC905ServiceHeader readRFC905ServiceHeader(QDataStream& iStream, quint8 cdtCode, quint8 readClass);	// Return RFC905 header as struct.
 	TRFC905DataHeader readRFC905DataHeader(QDataStream& iStream);
@@ -78,36 +81,63 @@ public:
 	quint32 writeRFC905ServiceHeader(quint8 cdtCode);
 	quint32 writeRFC905Service(QByteArray& tSel1, QByteArray& tSel2);
 
+public:
+
+	/**
+	 * @param socket
+	 * 			pointer to Qt Socket, don't have to be nullptr
+	 * @param maxTPduSizeParam
+	 * 			maximum size of TPDU. Default is 65535.
+	 * @param messageTimeout
+	 * 			Timeout for receiving of all message
+	 * @param messageFragmentTimeout
+	 *			Timeout for receiving of fragment
+	 * @brief Constructor for CConnection. Connects QTcpSocket to read / written slots.
+	 */
 	CConnection(CTcpEasySocket* socket, quint32 maxTPduSizeParam, qint32 messageTimeout,
 				qint32 messageFragmentTimeout);
 
-//	CConnection(const CConnection& other);
-
 	virtual ~CConnection();
 
+	/**
+	 * @param tSelRemote
+	 * 			transport remote selector
+	 * @brief This function sets Transport Remote Selector. It's used in establishing a remote server connection.
+	 *
+	 * It specifies a byte array, which is expressed as pairs of hexadecimal digits separated by zero or more spaces.
+	 * The maximum size is 50 bytes (100 hex chars).
+	 * The default setting is "00 01" (unless a value is specified in the SCL file)
+	 */
 	void setSelRemote(QByteArray& tSelRemote);
 
+	/**
+	 * @param tSelLocal
+	 * 			transport local selector
+	 * @brief This function sets Transport Local Selector. It's used in receiving a server connection from remote.
+	 *
+	 * It specifies a byte array, which is expressed as pairs of hexadecimal digits separated by zero or more spaces.
+	 * The maximum size is 50 bytes (100 hex chars).
+	 * The default setting is "00 01" (unless a value is specified in the SCL file)
+	 */
 	void setSelLocal(QByteArray& tSelLocal);
 
 	/**
-	 * This function is called once a client has connected to the server. It listens for a Connection Request (CR). If
-	 * this is successful it replies afterwards with a Connection Confirm (CC). According to the norm a syntax error in
+	 * @brief This function is called once by server when a client has connected to the server. It parse for a Connection Request (CR).
+	 *
+	 * If this is successful it replies afterwards with a Connection Confirm (CC). According to the norm a syntax error in
 	 * the CR should be followed by an ER. This implementation does not send an ER because it seems unnecessary.
 	 *
-	 * @throws CExConnectError
+	 * @return emits signalCRReady(this)
 	 */
 	void listenForCR();
 
 	/**
-	 * Starts a connection, sends a CR, waits for a CC and throws an IOException if not successful
-	 *
-	 * @throws CExConnectError
+	 * @brief Starts a connection, sends a CR, waits for a CC and throws an IOException if not successful
 	 */
 	void startConnection();
 
 	/**
-	 * Send data to connected host
-	 *
+	 * @brief Send data to connected host
 	 * @param tsdus
 	 * 			List of buffers to send
 	 * @param offsets
@@ -120,30 +150,32 @@ public:
 	quint32 send(QByteArray& tsdu, quint32 offset, quint32 length);
 
 	/**
+	 * @brief getter for message timeout
 	 * @return messageTimeout
+	 *           in milliseconds
 	 */
 	quint32 getMessageTimeout();
 
 	/**
-	* Set the TConnection timeout for waiting for the first byte of a new message. Default is 0 (unlimited)
-	*
-	* @param messageTimeout#include "socketfactory.h"
-	*
+	* @brief Set the TConnection timeout for waiting for the first byte of a new message. Default is 0 (unlimited)
+	* @param messageTimeout
 	*            in milliseconds
 	*/
 	void setMessageTimeout(int messageTimeout);
 
 	/**
-	 * @return messageTimeout
+	 * @brief getter for message fragment timeout
+	 * @return messageFragmentTimeout
+	 *           in milliseconds
 	 */
 	quint32 getMessageFragmentTimeout();
 
 	/**
-	 * Set the TConnection timeout for receiving data once the beginning of a message has been received. Default is
+	 * @brief Set the TConnection timeout for receiving data once the beginning of a message has been received. Default is
 	 * 60000 (60 seconds)
 	 *
 	 * @param messageFragmentTimeout
-	 *            in milliseconds
+	 *           in milliseconds
 	 */
 	void setMessageFragmentTimeout(int messageFragmentTimeout);
 
@@ -152,15 +184,6 @@ public:
 	 *
 	 * @param tSduBuffer
 	 *            the buffer that is filled with the received TSDU data.
-	 * @throws CexEOF
-	 *             if a Disconnect Request (DR) was received or the socket was simply closed
-	 * @throws CExSocketTimeout
-	 *             if a messageFragmentTimeout is thrown by the socket while receiving the remainder of a message
-	 * @throws CExIO
-	 *             if an ErrorPDU (ER) was received, any syntax error in the received message header was detected or the
-	 *             tSduBuffer is too small to hold the complete PDU.
-	 * @throws CExTimeout
-	 *             this exception is thrown if the first byte of new message is not received within the message timeout.
 	 * @return bool
 	 * 				is true when TSDU is correct
 	 * 				is false when TSDU has errors
@@ -168,20 +191,33 @@ public:
 	bool receive(QByteArray& tSduBuffer);
 
 	/**
-	 * This function sends a Disconnect Request but does not wait for a Disconnect Confirm.
+	 * @brief This function sends a Disconnect Request but does not wait for a Disconnect Confirm.
 	 */
 	void disconnect();
 
 	/**
-	 * Will close the TCP connection if its still open and free any resources of this connection.
+	 * @brief Will close the TCP connection if its still open and free any resources of this connection.
+	 * @return emits signalConnectionClosed(this)
 	 */
 	void close();
 
 
+	/**
+	 * @brief This function is called once by client when a client has connected to the server. It parse for a Connection Answer.
+	 * @return emits signal signalConnectionReady(this)
+	 */
 	void parseServerAnswer();
 
-
-	QScopedPointer<QDataStream>& inputStream() { return m_pIs; }
+	/**
+	 * @brief Calculates and returns the maximum TPDUSize. This is equal to 2^(maxTPDUSizeParam)
+	 *
+	 * @param maxTPDUSizeParam
+	 *            the size parameter
+	 * @return the maximum TPDU size
+	 * @throws std::invalid_argument("CConnection::getMaxTPDUSize: maxTPDUSizeParam is wrong.")
+	 *             is argument illegal
+	 */
+	static int getMaxTPDUSize(int maxTPDUSizeParam);
 
 protected:
 

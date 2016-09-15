@@ -2,16 +2,16 @@
 
 CClientTSAP::CClientTSAP():
 		m_pSocketFactory(nullptr),
-		m_messageTimeout(5000),
-		m_messageFragmentTimeout(5000),
+		m_messageTimeout(0),
+		m_messageFragmentTimeout(60000),
 		m_maxTPDUSizeParam(65531)
 {
 }
 
 CClientTSAP::CClientTSAP(CSocketFactory& socketFactory):
 		m_pSocketFactory(&socketFactory),
-		m_messageTimeout(5000),
-		m_messageFragmentTimeout(5000),
+		m_messageTimeout(0),
+		m_messageFragmentTimeout(60000),
 		m_maxTPDUSizeParam(65531)
 {
 }
@@ -30,7 +30,7 @@ void CClientTSAP::setMaxTPDUSizeParam(int maxTPduSizeParam)
 {
 	if (maxTPduSizeParam < 7 || maxTPduSizeParam > 16) {
 
-		emit signalIllegalArgument("CClientTSAP::setMaxTPDUSizeParam: parameter Is out of bound");
+		emit signalIllegalArgument("CClientTSAP::setMaxTPDUSizeParam: parameter is out of bound");
 
 		return;
 	}
@@ -41,18 +41,6 @@ void CClientTSAP::setMaxTPDUSizeParam(int maxTPduSizeParam)
 int CClientTSAP::getMaxTPDUSizeParam()
 {
 	return m_maxTPDUSizeParam;
-}
-
-int CClientTSAP::getMaxTPDUSize(int maxTPDUSizeParam)
-{
-	if (maxTPDUSizeParam < 7 || maxTPDUSizeParam > 16) {
-		std::invalid_argument("CClientTSAP::getMaxTPDUSize: maxTPDUSizeParam is wrong.");
-	}
-
-	if (maxTPDUSizeParam == 16)
-		return 65531;
-	else
-		return pow(2, maxTPDUSizeParam);
 }
 
 CConnection* CClientTSAP::createConnection(QHostAddress address, quint16 port)

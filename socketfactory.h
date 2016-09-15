@@ -12,10 +12,10 @@
 #include "tcpeasysocket.h"
 #include "connection.h"
 
-/*
- *  QSocketFactory creates CTcpEasySockets
- *  Singleton
+/**
+ *  @class QSocketFactory creates CTcpEasySockets. (Singleton)
  */
+
 class OSITRANSPORTSHARED_EXPORT CSocketFactory
 {
 private:
@@ -29,6 +29,11 @@ private:
 	quint32 connect_tout;
 
 public:
+
+/**
+ * @brief creates SocketFactory as singleton
+ * @return pointer socket factory
+ */
 	static CSocketFactory* getSocketFactory()
 	{
 		s_mut.lock();
@@ -52,9 +57,17 @@ public:
 		return s_pInst;
 	}
 
+/**
+ * @brief sets timeout for the tcp/ip connection waiting
+ * @param tout
+ * 			timeout in milliseconds
+ */
 	void setConnectTimeout(int tout);
 
-	// TODO: Remake createSocket as eventual model
+/**
+ * @brief all createSocket functions returns new socket for connection
+ * @return new socket for connection
+ */
 	CTcpEasySocket* createSocket();
 	CTcpEasySocket* createSocket(QString host, quint16 port);
 	CTcpEasySocket* createSocket(QHostAddress host, quint16 port);
