@@ -117,7 +117,7 @@ public:
 	void setMaxConnections(int maxConnections);
 
 	/**
-	 * @brief Set the TConnection timeout for waiting for the first byte of a new message.
+	 * @brief Set the CConnection timeout for waiting for the first byte of a new message.
 	 *
 	 * @param messageTimeout. Default is 0 (unlimited).
 	 *            in milliseconds
@@ -125,7 +125,7 @@ public:
 	void setMessageTimeout(int messageTimeout);
 
 	/**
-	 * @brief Set the TConnection timeout for receiving data once the beginning of a message has been received.
+	 * @brief Set the CConnection timeout for receiving data once the beginning of a message has been received.
 	 *
 	 * @param messageFragmentTimeout. Default is 60000 (60 seconds).
 	 *            in milliseconds
