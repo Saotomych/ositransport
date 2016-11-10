@@ -219,6 +219,8 @@ public:
 	 */
 	static int getMaxTPDUSize(int maxTPDUSizeParam);
 
+        bool isClosed() const;
+
 protected:
 
 	class CTSDUSender

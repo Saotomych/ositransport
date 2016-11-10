@@ -342,6 +342,8 @@ void CConnection::parseServerAnswer()
 
 	if (!readRFC905VariablePart(*m_pIs, dataLenght-4, m_tSelRemote, m_tSelLocal)) return;
 
+    m_closed = false;
+
 	emit signalConnectionReady(this);
 }
 
@@ -491,18 +493,16 @@ void CConnection::disconnect()
 
 	m_pSocket->getSocket()->flush();
 
-	close();
+	emit signalConnectionClosed(this);
 }
 
 void CConnection::close()
 {
-	if (!m_closed)
+        if (!m_closed)
 	{
 		m_closed = true;
 		m_pSocket->getSocket()->close();
 		m_pIs->setStatus(QDataStream::WriteFailed);
-
-		emit signalConnectionClosed(this);
 	}
 }
 
@@ -619,4 +619,9 @@ bool CConnection::CTSDUSender::sendNextTSDU(CConnection& Conn)
 	{
 		return false;
 	}
+}
+
+bool CConnection::isClosed() const
+{
+    return m_closed;
 }

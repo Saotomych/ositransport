@@ -47,7 +47,13 @@ CTcpEasySocket* CSocketFactory::createSocket(QString host, quint16 port)
 	ts->getSocket()->connectToHost(host, port);
 	bool bRes = ts->getSocket()->waitForConnected(connect_tout);
 
-	printConnectResult( bRes, ts, host, port );
+        printConnectResult( bRes, ts, host, port );
+
+        if (ts->getSocket()->state() != QTcpSocket::ConnectedState)
+        {
+            delete ts;
+            return nullptr;
+        }
 
 	return ts;
 }
@@ -66,7 +72,12 @@ CTcpEasySocket* CSocketFactory::createSocket(QHostAddress host, quint16 port)
 
 	printConnectResult( bRes, ts, host.toString(), port );
 
-	return ts;
+        if (ts->getSocket()->state() != QTcpSocket::ConnectedState)
+        {
+            delete ts;
+            return nullptr;
+        }
+        return ts;
 }
 
 /*
@@ -86,6 +97,12 @@ CTcpEasySocket* CSocketFactory::createSocket(QString host, quint16 port, QHostAd
 
 	printConnectResult( bRes, ts, host, port );
 
+        if (ts->getSocket()->state() != QTcpSocket::ConnectedState)
+        {
+            delete ts;
+            return nullptr;
+        }
+
 	return ts;
 }
 
@@ -104,6 +121,12 @@ CTcpEasySocket* CSocketFactory::createSocket(QHostAddress host, quint16 port, QH
 	bool bRes = ts->getSocket()->waitForConnected(connect_tout);
 
 	printConnectResult( bRes, ts, host.toString(), port );
+
+        if (ts->getSocket()->state() != QTcpSocket::ConnectedState)
+        {
+            delete ts;
+            return nullptr;
+        }
 
 	return ts;
 }

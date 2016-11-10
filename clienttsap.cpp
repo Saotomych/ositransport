@@ -61,10 +61,19 @@ CConnection* CClientTSAP::createConnection(QHostAddress address, quint16 port, Q
 	}
 
 	CTcpEasySocket* socket = nullptr;
-	if (localAddr.isNull())
-		socket = m_pSocketFactory->createSocket(address, port);
-	else
-		socket = m_pSocketFactory->createSocket(address, port, localAddr, localPort);
+        qint32 tries = 3;
+
+        while (socket == nullptr && tries)
+        {
+            qDebug() << "Create socket try " << (4-tries);
+            if (localAddr.isNull())
+                socket = m_pSocketFactory->createSocket(address, port);
+            else
+                socket = m_pSocketFactory->createSocket(address, port, localAddr, localPort);
+
+            QThread::msleep(500);
+            --tries;
+        }
 
 	CConnection* pconnection = new CConnection(socket, m_maxTPDUSizeParam, m_messageTimeout, m_messageFragmentTimeout);
 	pconnection->setSelRemote(m_tSelRemote);
